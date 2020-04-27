@@ -1,9 +1,9 @@
 {
-  "name": "@mosteast/xxx",
-  "description": "xxx",
+  "name": "@mosteast/ormx",
+  "description": "ormx",
   "version": "0.0.1",
-  "homepage": "https://github.com/xxx/xxx#readme",
-  "repository": "github:xxx/xxx",
+  "homepage": "https://github.com/mosteast/ormx#readme",
+  "repository": "github:mosteast/ormx",
   "main": "build/index.js",
   "type": "build/index.d.ts",
   "files": [
