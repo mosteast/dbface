@@ -13,4 +13,7 @@ it('connect', async () => {
     username: process.env.ormx_username,
     password: process.env.ormx_password,
   })
+
+  const r = await con.query('select datname from pg_database')
+  expect(r.rowCount).toBeTruthy()
 })
