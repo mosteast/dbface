@@ -2,7 +2,7 @@
 
 import * as yargs from 'yargs'
 import { Argv } from 'yargs'
-import { go, I_migration_go } from '../src/migration/migration'
+import { run, I_migration_go } from '../src/migration/migration'
 
 yargs
   .command({
@@ -41,7 +41,7 @@ function builder(argv: Argv): Argv {
                   },
                 })
             },
-            handler: go,
+            handler: run,
           })
           .command({
             command: 'forward',
