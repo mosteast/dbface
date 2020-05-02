@@ -1,11 +1,23 @@
-import { cloneDeep } from 'lodash'
+import * as events from 'events'
+import { cloneDeep, merge } from 'lodash'
 import { Pool, PoolConfig, QueryConfig } from 'pg'
-import { Invalid_argument } from '../error/invalid_argument'
 import { Invalid_connection_config } from '../error/invalid_connection_config'
-import { Invalid_state, Invalid_state_external } from '../error/invalid_state'
+import { Invalid_state } from '../error/invalid_state'
+import { not_supported_db } from '../error/util/not_supported_db'
 import { key_replacer } from '../util/obj'
 
 export type T_db_type = 'mysql' | 'mariadb' | 'postgres'
+
+export type T_raw_config = PoolConfig
+
+export interface T_migration_config {
+  table_name?: string
+  file_dir?: string
+}
+
+export interface T_system_config {
+  table_name: string
+}
 
 export interface T_config {
   type: T_db_type
@@ -14,22 +26,59 @@ export interface T_config {
   username?: string
   password?: string
   uri?: string
+  migration?: T_migration_config
+  system?: T_system_config
 }
 
-export class Connection {
-  name?: string
-  config?: T_config
+const default_confg: T_config = {
+  type: 'postgres',
+  migration: {
+    table_name: 'ormx_migration',
+  },
+  system: {
+    table_name: 'ormx_system',
+  },
+}
+
+export class Connection extends events.EventEmitter {
+  protected config?: T_config
   raw: Pool
-  raw_config: PoolConfig
+  protected raw_config: T_raw_config
   closed = false
 
   constructor(config?: T_config) {
+    super()
     if (config) { this.set_config(config) }
   }
 
+  /**
+   * Set connection config
+   * @param config
+   */
   set_config(config: T_config) {
-    this.config = config
+    this.config = merge(default_confg, config)
     this.adapt_config()
+  }
+
+  /**
+   * Get connection config
+   */
+  get_config(): T_config {
+    return cloneDeep(this.config)
+  }
+
+  /**
+   * Get adapted raw connection config
+   */
+  get_raw_config(): T_raw_config {
+    return cloneDeep(this.raw_config)
+  }
+
+  /**
+   * Get raw connection
+   */
+  get_raw() {
+    return this.raw
   }
 
   /**
@@ -42,7 +91,7 @@ export class Connection {
         key_replacer(this.raw_config, { uri: 'connectionString', username: 'user' })
         break
       default:
-        throw new Invalid_argument(`We currently not support database type: "${this.config?.type}"`)
+        not_supported_db(this.config?.type)
     }
   }
 
@@ -50,7 +99,11 @@ export class Connection {
    * Config validation
    */
   validate_config() {
-    if ( ! this.config) { throw new Invalid_connection_config('Empty config') }
+    const c = this.config
+    if ( ! c) { throw new Invalid_connection_config('Empty config') }
+
+    // if ( ! c.system.table_name) { throw new Invalid_connection_config('Required: `system.table_name`') }
+    // if ( ! c.migration.table_name) { throw new Invalid_connection_config('Required: `migration.table_name`') }
   }
 
   /**
@@ -66,7 +119,75 @@ export class Connection {
         this.raw = new Pool(this.raw_config)
         break
       default:
-        throw new Invalid_argument(`We currently not support database type: "${this.config?.type}"`)
+        not_supported_db(this.config?.type)
+    }
+
+    this.listen()
+    await this.init_state()
+  }
+
+  listen() {
+    this.raw.on('error', (e, client) => {
+      console.error(e)
+    })
+
+    this.raw.on('connect', e => {
+      this.closed = false
+    })
+  }
+
+  /**
+   * Initialize database state
+   * Creating necessary tables and datum.
+   */
+  async init_state() {
+    await this.init_state_migration()
+  }
+
+  /**
+   * Creating necessary tables and datum for migration.
+   */
+  async init_state_migration() {
+    const c = this.config
+    if ( ! c.migration) { return }
+    await this.ensure_databases([ c.migration.table_name, c.system.table_name ])
+  }
+
+  /**
+   * Check database exists
+   * @param name
+   */
+  async database_exists(name: string): Promise<boolean> {
+    let r = false
+
+    switch (this.config.type) {
+      case 'postgres':
+        const a = await this.query(`select datname from pg_database where datname = '${name}'`)
+        r = a.rowCount ? a : false
+        break
+    }
+
+    return r
+  }
+
+  async create_database(name: string) {
+    switch (this.config.type) {
+      case 'postgres':
+        await this.raw.query(`create database "${name}"`)
+        break
+    }
+  }
+
+  async ensure_databases(name: string)
+  async ensure_databases(names: string[])
+  async ensure_databases(a) {
+    if (typeof a === 'string') {
+      a = [ a ]
+    }
+
+    for (const name of a) {
+      if (await this.database_exists(name)) { continue }
+      await this.create_database(name)
     }
   }
 
@@ -81,7 +202,7 @@ export class Connection {
         await this.raw?.end()
         break
       default:
-        throw new Invalid_argument(`We currently not support database type: "${this.config?.type}"`)
+        not_supported_db(this.config?.type)
     }
     this.raw = null
   }
@@ -89,9 +210,7 @@ export class Connection {
   async query<T>(config: QueryConfig)
   async query<T>(sql: string, params?: any)
   async query<T>(a, b?) {
-    if ( ! this.raw) {
-      await this.connect()
-    }
+    if ( ! this.raw) { await this.connect() }
     // @ts-ignore
     return this.raw.query<T>(...arguments)
   }

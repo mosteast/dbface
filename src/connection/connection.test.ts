@@ -17,6 +17,8 @@ it('connect', async () => {
 
   const r = await con.query('select datname from pg_database')
   expect(r.rowCount).toBeTruthy()
+  await expect(con.database_exists(con.get_config().system.table_name)).resolves.toBeTruthy()
+  await expect(con.database_exists(con.get_config().migration.table_name)).resolves.toBeTruthy()
 })
 
 it('close', async () => {
