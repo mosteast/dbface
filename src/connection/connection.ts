@@ -2,6 +2,7 @@ import { cloneDeep } from 'lodash'
 import { Pool, PoolConfig, QueryConfig } from 'pg'
 import { Invalid_argument } from '../error/invalid_argument'
 import { Invalid_connection_config } from '../error/invalid_connection_config'
+import { Invalid_state, Invalid_state_external } from '../error/invalid_state'
 import { key_replacer } from '../util/obj'
 
 export type T_db_type = 'mysql' | 'mariadb' | 'postgres'
@@ -20,6 +21,7 @@ export class Connection {
   config?: T_config
   raw: Pool
   raw_config: PoolConfig
+  closed = false
 
   constructor(config?: T_config) {
     if (config) { this.set_config(config) }
@@ -44,11 +46,19 @@ export class Connection {
     }
   }
 
+  /**
+   * Config validation
+   */
   validate_config() {
     if ( ! this.config) { throw new Invalid_connection_config('Empty config') }
   }
 
+  /**
+   * Connect to database/pool
+   */
   async connect() {
+    if (this.closed) { throw new Invalid_state('Connection has closed.') }
+
     this.validate_config()
     switch (this.config?.type) {
       case 'postgres':
@@ -60,14 +70,20 @@ export class Connection {
     }
   }
 
+  /**
+   * Close connection
+   */
   async close() {
+    this.closed = true
+
     switch (this.config?.type) {
       case 'postgres':
-        await this.raw.end()
+        await this.raw?.end()
         break
       default:
         throw new Invalid_argument(`We currently not support database type: "${this.config?.type}"`)
     }
+    this.raw = null
   }
 
   async query<T>(config: QueryConfig)
