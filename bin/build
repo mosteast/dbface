@@ -2,7 +2,7 @@
 
 const { dir_root } = require('../root')
 const { writeFileSync, pathExistsSync, ensureDirSync, copySync } = require('fs-extra')
-const { mv, cp, exec, mkdir } = require('shelljs')
+const { mv, exec, mkdir } = require('shelljs')
 
 const r = dir_root
 
