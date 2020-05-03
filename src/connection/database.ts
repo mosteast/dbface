@@ -1,5 +1,6 @@
 import { Invalid_argument } from '../error/invalid_argument'
 import { Invalid_connection_config } from '../error/invalid_connection_config'
+import { list_child_dirs } from '../util/path'
 import { Connection, T_config_connection, T_system_config } from './connection'
 
 export interface T_config_database extends T_config_connection {
@@ -107,9 +108,30 @@ export class Database extends Connection<T_config_database> {
   }
 
   /**
+   * List all migrated records
+   */
+  async migration_list_migrated() {
+    const table = this.get_config().migration.table_name
+    return await this.query(`select * from ${table}`)
+  }
+
+  /**
+   * List all not migrated files
+   */
+  async migration_list_pending() {
+
+  }
+
+  async migration_list_files(): Promise<string[]> {
+    const dir = this.get_config().migration.file_dir
+    return list_child_dirs(dir)
+  }
+
+  /**
    * Build table holder name
    */
   static table_holder_name_build(i: number) {
     return `_holder${i}`
   }
+
 }
