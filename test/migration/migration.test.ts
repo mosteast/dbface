@@ -1,6 +1,6 @@
 import { load_env_once } from '@mosteast/env_helper'
 import { resolve } from 'path'
-import { Connection } from '../../src/connection/connection'
+import { Database } from '../../src/connection/database'
 import { Migration } from '../../src/migration/migration'
 
 beforeEach(async () => {
@@ -8,7 +8,8 @@ beforeEach(async () => {
 })
 
 it('run', async () => {
-  const con = new Connection({
+  const db = new Database({
+    database: process.env.ormx_database,
     type: 'postgres',
     host: process.env.ormx_host,
     port: parseInt(process.env.ormx_port),
@@ -17,6 +18,6 @@ it('run', async () => {
     migration: { file_dir: resolve(__dirname, 'migration_dir') },
   })
 
-  const m = new Migration(con)
+  const m = new Migration(db)
   await m.run(1)
 })

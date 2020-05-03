@@ -203,5 +203,3 @@ export class Connection<Config extends T_config_connection = T_config_connection
     }
   }
 }
-
-
