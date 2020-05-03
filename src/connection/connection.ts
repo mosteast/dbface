@@ -14,6 +14,7 @@ export type T_raw_config = PoolConfig
 export interface T_migration_config {
   table_name?: string
   file_dir?: string
+  migration_file_suffix?: string
 }
 
 export interface T_system_config {
@@ -41,6 +42,7 @@ export class Connection<Config extends T_config_connection = T_config_connection
     migration: {
       table_name: 'ormx_migration',
       file_dir: resolve(pwd().toString(), 'database/migration'),
+      migration_file_suffix: '.m',
     },
     system: {
       table_name: 'ormx_system',

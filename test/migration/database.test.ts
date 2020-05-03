@@ -1,4 +1,5 @@
 import { reload_env } from '@mosteast/env_helper'
+import { resolve } from 'path'
 import { Connection, T_config_connection } from '../../src/connection/connection'
 import { Database, T_config_database } from '../../src/connection/database'
 
@@ -53,4 +54,19 @@ it('table_create_holder/table_drop_all', async () => {
   expect(await db.table_count()).toBe(3)
   await db.table_drop_all()
   expect((await db.table_list()).length).toBe(0)
+})
+
+it('migration_run', async () => {
+  const db = new Database({
+    database: process.env.ormx_database,
+    type: 'postgres',
+    host: process.env.ormx_host,
+    port: parseInt(process.env.ormx_port),
+    username: process.env.ormx_username,
+    password: process.env.ormx_password,
+    migration: { file_dir: resolve(__dirname, 'migration_dir') },
+  })
+
+  await db.table_ensure_migration()
+  await db.migration_run()
 })

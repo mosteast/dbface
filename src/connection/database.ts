@@ -1,7 +1,10 @@
-import { Invalid_argument } from '../error/invalid_argument'
+import { readdirSync } from 'fs'
+import { readdir, readFile } from 'fs-extra'
+import { resolve } from 'path'
+import { ls } from 'shelljs'
 import { Invalid_connection_config } from '../error/invalid_connection_config'
-import { list_child_dirs } from '../util/path'
 import { Connection, T_config_connection, T_system_config } from './connection'
+import { difference } from 'lodash'
 
 export interface T_config_database extends T_config_connection {
   database: string
@@ -112,19 +115,55 @@ export class Database extends Connection<T_config_database> {
    */
   async migration_list_migrated() {
     const table = this.get_config().migration.table_name
-    return await this.query(`select * from ${table}`)
+    const { rows } = await this.query(`select * from ${table}`)
+
+    return rows
   }
 
   /**
    * List all not migrated files
    */
-  async migration_list_pending() {
+  async migration_list_pending(): Promise<string[]> {
+    const db = await this.migration_list_migrated()
+    const files = await this.migration_list_files()
+    for (const [ i, it ] of files.entries()) {
+      if (db.includes(it)) {
+        continue
+      }
 
+      return files.slice(i, files.length)
+    }
   }
 
   async migration_list_files(): Promise<string[]> {
     const dir = this.get_config().migration.file_dir
-    return list_child_dirs(dir)
+    const suffix = this.get_config().migration.migration_file_suffix
+    const re = new RegExp(`.+${suffix}\.(?:js|ts)$`)
+    return (await readdir(dir)).filter(it => re.test(it))
+  }
+
+  /**
+   * Run migration
+   */
+  async migration_run(step: number = 0) {
+    const diff = await this.migration_list_pending()
+    if ( ! step) {
+      step = diff.length
+    }
+
+    // for (let i = 0; i < step; i++) {
+    //   if (step - i < 1) { return }
+    //   const path = resolve(this.get_config().migration.file_dir, diff[i])
+    //   const modu = require(path)
+    //   await modu.forward()
+    // }
+  }
+
+  /**
+   * Read migration file by name (only file name)
+   */
+  async migration_file_read(file_name: string) {
+    return readFile(resolve(this.get_config().migration.file_dir, file_name))
   }
 
   /**
