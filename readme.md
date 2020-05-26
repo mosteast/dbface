@@ -1,1 +1,3 @@
-# Another ORM lib
+# Another ORM library
+
+Project currently in progress...
