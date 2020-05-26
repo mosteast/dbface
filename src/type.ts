@@ -21,7 +21,7 @@ export const table_system = 'ormx_system';
  */
 export interface T_row_database {
   name?: string
-  owner?: string
   encoding?: string
   collate?: string
+  owner?: string // postgres only
 }

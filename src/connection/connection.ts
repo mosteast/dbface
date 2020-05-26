@@ -24,7 +24,7 @@ export class Connection extends events.EventEmitter implements T_connection {
     type: env.ormx_type,
     host: env.ormx_type,
     port: env.ormx_port,
-    username: env.ormx_username,
+    user: env.ormx_user,
     password: env.ormx_password,
     uri: env.ormx_uri,
     migration: {
@@ -175,7 +175,7 @@ export interface T_config_connection {
   type: N_db_type
   host?: string
   port?: number
-  username?: string
+  user?: string
   password?: string
   uri?: string
   migration?: T_migration_config

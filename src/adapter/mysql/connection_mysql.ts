@@ -1,71 +1,132 @@
 import * as events from 'events';
-import { createPool, Pool } from 'mysql2/promise';
-import { IN_query, N_db_type, T_config_connection, T_connection } from '../../connection/connection';
-import { T_row_database } from '../../type';
+import { cloneDeep, merge } from 'lodash';
+import { createPool, Pool, PoolOptions } from 'mysql2/promise';
+import { resolve } from 'path';
+import { pwd } from 'shelljs';
+import { IN_query, N_db_type, T_config_connection, T_connection, T_opt_log } from '../../connection/connection';
+import { T_row_database, table_migration, table_system } from '../../type';
 
 export interface T_config_connection_mysql extends T_config_connection {
   type: N_db_type.mysql
 }
 
+const env = process.env;
+
 export class Connection_mysql extends events.EventEmitter implements T_connection {
+  /**
+   * Default configuration as a base to merge
+   */
+  static def: T_config_connection_mysql | any = {
+    type: N_db_type.mysql,
+    host: env.ormx_type,
+    port: env.ormx_port,
+    user: env.ormx_user,
+    password: env.ormx_password,
+    uri: env.ormx_uri,
+    migration: {
+      table_name: table_migration,
+      file_dir: resolve(pwd().toString(), 'database/migration'),
+      migration_file_suffix: '.m',
+    },
+    system: {
+      table_name: table_system,
+      ensure_database: true,
+    },
+  };
+
   pool: Pool;
+  raw_config: PoolOptions;
   config: T_config_connection_mysql;
-
-  constructor() {
-    super();
-
-  }
-
-  adapt_config(): void {}
 
   async connect(): Promise<void> {
     if ( ! this.pool) {
-      this.pool = createPool(this.config);
+      this.pool = createPool(this.raw_config);
     }
   }
+
+  async close(): Promise<void> {
+    await this.pool.end();
+  }
+
+  get_config(): T_config_connection {
+    return this.config;
+  }
+
+  set_config(config: T_config_connection): void {
+    // @ts-ignore
+    const c: T_config_connection = this.config = merge((this.constructor).def, config);
+
+    if (c.log) {
+      switch (typeof c.log) {
+        case 'function':
+          c.log = { logger: c.log };
+          break;
+        case 'boolean':
+          c.log = {};
+          break;
+      }
+
+      if ( ! c.log?.logger) {
+        c.log.logger = (...args) => console.info('●', ...args);
+      }
+    } else {
+      c.log = false;
+    }
+
+    this.adapt_config();
+  }
+
+  adapt_config(): void {
+    const copy: any = cloneDeep(this.config);
+    delete copy.log;
+    delete copy.type;
+    delete copy.migration;
+    delete copy.system;
+
+    this.raw_config = copy;
+    console.log(copy);
+    // key_replace(this.raw_config, { uri: 'connectionString', username: 'user' });
+  }
+
+  validate_config(): void {}
 
   async ping() {
     return !! await this.server_version();
   }
 
   async server_version(): Promise<string> {
-    const r = await this.query('select version()');
-    return r.rows[0].version;
+    const r = await this.query('select version() as version');
+    return r[0][0].version;
   }
 
-  database_create(name: string): Promise<T_row_database> {
-    return Promise.resolve(undefined);
+  async database_create(name: string): Promise<T_row_database> {
+    await this.query(`create database ??`, [ name ]);
+    return this.database_pick(name);
   }
 
-  database_drop(name: string): Promise<void> {
-    return Promise.resolve(undefined);
+  async database_drop(name: string): Promise<void> {
+    await this.query(`drop database if exists ??`, [ name ]);
   }
 
-  database_list(): Promise<T_row_database[]> {
-    return Promise.resolve([]);
+  async database_list(): Promise<T_row_database[]> {
+    return this.query(`
+select schema_name as \`name\`, default_character_set_name as \`encoding\`, default_collation_name as \`collate\`
+from information_schema.schemata`.trim());
   }
 
-  database_pick(name: string): Promise<T_row_database> {
-    return Promise.resolve(undefined);
+  async database_pick(name: string): Promise<T_row_database> {
+    const r = await this.query(`
+select schema_name as \`name\`, default_character_set_name as \`encoding\`, default_collation_name as \`collate\`
+from information_schema.schemata
+where schema_name = ?`.trim(), [ name ]);
+    return r[0][0];
   }
 
-  databases_ensure(name: string): Promise<T_row_database> {
-    return Promise.resolve(undefined);
-  }
+  async databases_ensure(name: string): Promise<T_row_database> {
+    const exist = await this.database_pick(name);
+    if (exist) { return exist; }
 
-  get_config(): T_config_connection {
-    return undefined;
-  }
-
-  set_config(conf: T_config_connection): void {
-
-  }
-
-  validate_config(): void {
-  }
-
-  close(): Promise<void> {
-    return Promise.resolve(undefined);
+    return await this.database_create(name);
   }
 
   async query<T = any, T_params = any>(opt: IN_query<T_params>): Promise<T>;
@@ -79,6 +140,21 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
       opt = a;
     }
 
-    return this.pool.query({ sql: opt.sql, values: opt.params });
+    this.log(opt);
+    const r = await this.pool.query({ sql: opt.sql, values: opt.params });
+    return r;
+    // return key_replace(r, { rowCount: 'count' });
+  }
+
+  log({ sql, params }: IN_query) {
+    const log: T_opt_log = this.config.log as T_opt_log;
+    if (log) {
+      let param_part = '';
+      if (log.log_params && params) {
+        param_part = '-- ' + JSON.stringify(params);
+      }
+
+      log.logger(sql, param_part);
+    }
   }
 }

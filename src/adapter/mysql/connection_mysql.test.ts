@@ -6,13 +6,41 @@ const e = process.env;
 const conf: T_config_connection_mysql = {
   type: N_db_type.mysql,
   host: e.mysql_host,
-  username: 'root',
+  port: +e.mysql_port,
+  user: e.mysql_user,
   password: e.mysql_password,
+  log: { log_params: true },
 };
 
-it('database_list', async () => {
-  const con = new Connection_mysql();
+let con: Connection_mysql;
+
+beforeEach(async () => {
+  con = new Connection_mysql();
   con.set_config(conf);
   await con.connect();
-  await con.query('show databases');
+});
+
+it('can connect', async () => {
+  expect(await con.ping()).toBeTruthy();
+});
+
+it('database_create', async () => {
+  const name = 'a';
+  await con.database_drop(name);
+  expect((await con.database_create(name)).name).toBe(name);
+});
+
+it('database_pick', async () => {
+  const name = 'a';
+  await con.database_drop(name);
+  await con.database_create(name);
+  expect((await con.database_pick(name)).name).toBe(name);
+});
+
+it('database_drop', async () => {
+  const name = 'a';
+  await con.databases_ensure(name);
+  expect((await con.database_pick(name))).toBeTruthy();
+  await con.database_drop(name);
+  expect((await con.database_pick(name))).toBeFalsy();
 });

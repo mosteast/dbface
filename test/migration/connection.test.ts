@@ -9,7 +9,7 @@ async function reset() {
     type: N_db_type.postgres,
     host: process.env.ormx_host,
     port: parseInt(process.env.ormx_port),
-    username: process.env.ormx_username,
+    user: process.env.ormx_username,
     password: process.env.ormx_password,
   })
 }

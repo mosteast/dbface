@@ -7,7 +7,7 @@ const conf: T_config_connection_postgres = {
   type: N_db_type.postgres,
   host: e.postgres_host,
   port: +e.postgres_port,
-  username: e.postgres_username,
+  user: e.postgres_user,
   password: e.postgres_password,
   log: { log_params: true },
 };
@@ -21,7 +21,7 @@ beforeEach(async () => {
 });
 
 it('can connect', async () => {
-  expect(await con.server_version()).toBeTruthy();
+  expect(await con.ping()).toBeTruthy();
 });
 
 it('database_create', async () => {

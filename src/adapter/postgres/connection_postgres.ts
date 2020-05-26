@@ -19,7 +19,7 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
     type: N_db_type.postgres,
     host: env.ormx_type,
     port: env.ormx_port,
-    username: env.ormx_username,
+    user: env.ormx_user,
     password: env.ormx_password,
     uri: env.ormx_uri,
     migration: {
@@ -82,7 +82,7 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
     const copy: any = cloneDeep(this.config);
     delete copy.log;
     this.raw_config = copy;
-    key_replace(this.raw_config, { uri: 'connectionString', username: 'user' });
+    key_replace(this.raw_config, { uri: 'connectionString' });
   }
 
   validate_config(): void {}
@@ -102,7 +102,7 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
   }
 
   async database_drop(name: string): Promise<void> {
-    await this.query(e(`drop database "%I"`, name));
+    await this.query(e(`drop database if exists "%I"`, name));
   }
 
   async database_list(): Promise<T_row_database[]> {
