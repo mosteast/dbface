@@ -1,12 +1,12 @@
-import { load_env_once } from '@mosteast/env_helper'
-import { Connection } from '../../src/connection/connection'
+import { load_env_once } from '@mosteast/env_helper';
+import { Connection, N_db_type } from '../../src/connection/connection';
 
 let con: Connection
 
 async function reset() {
   await load_env_once(__dirname + '/../connection.test.asset.env')
   con = new Connection({
-    type: 'postgres',
+    type: N_db_type.postgres,
     host: process.env.ormx_host,
     port: parseInt(process.env.ormx_port),
     username: process.env.ormx_username,

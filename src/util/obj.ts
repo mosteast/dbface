@@ -3,12 +3,14 @@
  * @param obj
  * @param replace
  */
-export function key_replacer(obj: object, replace: object) {
+export function key_replace(obj: object, replace: object) {
   for (const key in obj) {
-    const new_key = replace[key]
+    const new_key = replace[key];
     if (new_key !== undefined && new_key !== null) {
-      obj[new_key] = obj[key]
-      delete obj[key]
+      obj[new_key] = obj[key];
+      delete obj[key];
     }
   }
+
+  return obj;
 }

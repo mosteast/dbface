@@ -1,0 +1,32 @@
+version: '3'
+services:
+  postgres:
+    hostname: postgres
+    restart: always
+    image: 'postgres:12'
+    env_file:
+      - .env
+    ports:
+      - ${postgres_port}:${postgres_port_internal}
+    environment:
+      POSTGRES_PASSWORD: ${postgres_password}
+      POSTGRES_USER: ${postgres_username}
+  mysql:
+    hostname: mysql
+    restart: always
+    image: 'mosteastdocker/mysql:8'
+    env_file:
+      - .env
+    ports:
+      - ${mysql_port}:${mysql_port_internal}
+    environment:
+      MYSQL_ROOT_PASSWORD: ${mysql_password}
+  redis:
+    hostname: redis
+    restart: always
+    env_file:
+      - .env
+    image: 'redis:5'
+    command: redis-server --appendonly yes # start with persistent storage
+    ports:
+      - ${redis_port}:${redis_port_internal}

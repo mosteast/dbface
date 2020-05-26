@@ -1,7 +1,7 @@
 {
   "name": "ormx",
   "description": "ormx",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "homepage": "https://github.com/mosteast/ormx#readme",
   "repository": "github:mosteast/ormx",
   "main": "build/index.js",
@@ -11,6 +11,8 @@
   ],
   "scripts": {
     "test": "NODE_ENV=testing npx jest --coverage --runInBand --detectOpenHandles --forceExit",
+    "test:before": "docker-compose up -d && docker-compose logs",
+    "test:after": "docker-compose down",
     "build": "./bin/build"
   },
   "author": "Mosteast team",
@@ -21,16 +23,19 @@
     "@mosteast/env_helper": "^0.1.14",
     "@mosteast/print_helper": "^0.1.6",
     "lodash": "^4.17.15",
+    "pg-escape": "^0.2.0",
     "yargs": "^15.3.1"
   },
   "devDependencies": {
     "@types/fs-extra": "^8.0.1",
     "@types/jest": "^24.9.1",
     "@types/lodash": "^4.14.150",
+    "@types/mysql2": "github:types/mysql2",
     "@types/node": "^11.15.6",
     "@types/pg": "^7.14.3",
     "@types/shelljs": "^0.8.6",
     "@types/yargs": "^15.0.4",
+    "dotenv": "^8.2.0",
     "fs-extra": "^8.1.0",
     "jest": "^24.9.0",
     "mysql2": "^2.1.0",

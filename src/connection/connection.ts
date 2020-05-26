@@ -1,13 +1,162 @@
-import * as events from 'events'
-import { cloneDeep, merge } from 'lodash'
-import { resolve } from 'path'
-import { Pool, PoolConfig, QueryConfig } from 'pg'
-import { pwd } from 'shelljs'
-import { Invalid_connection_config } from '../error/invalid_connection_config'
-import { not_supported_db } from '../error/util/not_supported_db'
-import { key_replacer } from '../util/obj'
+import * as events from 'events';
+import { cloneDeep, merge } from 'lodash';
+import { Pool as Mysql_pool } from 'mysql2/promise';
+import { resolve } from 'path';
+import { Pool as Pg_pool, PoolConfig } from 'pg';
+import { pwd } from 'shelljs';
+import { Connection_mysql } from '../adapter/mysql/connection_mysql';
+import { Connection_postgres } from '../adapter/postgres/connection_postgres';
+import { Invalid_connection_config } from '../error/invalid_connection_config';
+import { T_row_database, table_migration, table_system } from '../type';
 
-export type T_db_type = 'mysql' | 'mariadb' | 'postgres'
+export enum N_db_type {mysql = 'mysql', postgres = 'postgres'}
+
+const env = process.env;
+
+/**
+ * Pure DB server connection (without database)
+ */
+export class Connection extends events.EventEmitter implements T_connection {
+  /**
+   * Default configuration as a base to merge
+   */
+  static def: T_config_connection | any = {
+    type: env.ormx_type,
+    host: env.ormx_type,
+    port: env.ormx_port,
+    username: env.ormx_username,
+    password: env.ormx_password,
+    uri: env.ormx_uri,
+    migration: {
+      table_name: table_migration,
+      file_dir: resolve(pwd().toString(), 'database/migration'),
+      migration_file_suffix: '.m',
+    },
+    system: {
+      table_name: table_system,
+      ensure_database: true,
+    },
+  };
+
+  adapter: Connection_mysql | Connection_postgres;
+  raw_config: T_raw_config;
+
+  constructor(config?: T_config_connection) {
+    super();
+    if (config) { this.set_config(config); }
+  }
+
+  /**
+   * Set connection config
+   * @param config
+   */
+  set_config(config: T_config_connection) {
+    config = merge(Connection.def, config);
+    this.adapter.set_config(config);
+  }
+
+  /**
+   * Get connection config
+   */
+  get_config(): T_config_connection {
+    return this.adapter.get_config();
+  }
+
+  /**
+   * Get adapted raw connection config
+   */
+  get_raw_config(): T_raw_config {
+    return cloneDeep(this.raw_config);
+  }
+
+  /**
+   * Get raw connection
+   */
+  get_raw() {
+    return this.adapter.pool;
+  }
+
+  /**
+   * Convert `config` to "raw config" (e.g. mysql2 or pg config)
+   */
+  adapt_config() {
+    this.adapter.adapt_config();
+  }
+
+  /**
+   * Config validation
+   */
+  validate_config() {
+    const c = this.adapter.config;
+    if ( ! c) { throw new Invalid_connection_config('Empty config'); }
+    if ( ! c.system.table_name) { throw new Invalid_connection_config('Required: `system.table_name`'); }
+
+    const m = c.migration;
+    if (m) {
+      if ( ! m.table_name) { throw new Invalid_connection_config('Required: `migration.table_name`'); }
+      if ( ! m.file_dir) { throw new Invalid_connection_config('Required: `migration.file_dir`'); }
+    }
+
+    this.adapter.validate_config();
+  }
+
+  /**
+   * Connect to database/pool
+   */
+  async connect() {
+    await this.adapter.connect();
+  }
+
+  /**
+   * Close connection
+   */
+  async close() {
+    await this.adapter.close();
+  }
+
+  async query<T = any, T_params = any>(opt: IN_query): Promise<T>
+  async query<T = any, T_params = any>(sql: string, params: T_params): Promise<T>
+  async query(a, b?) {
+    return this.adapter.query(a, b);
+  }
+
+  /**
+   * Check if database exists
+   * @param name
+   */
+  async database_pick(name: string): Promise<T_row_database> {
+    return this.adapter.database_pick(name);
+
+  }
+
+  async database_list(): Promise<T_row_database[]> {
+    return this.adapter.database_list();
+  }
+
+  async database_create(name: string): Promise<T_row_database> {
+    return this.adapter.database_create(name);
+  }
+
+  async database_drop(name: string) {
+    return this.adapter.database_drop(name);
+  }
+
+  /**
+   * Create database if not exists
+   * @param name
+   */
+  async databases_ensure(name: string): Promise<T_row_database> {
+    return this.adapter.databases_ensure(name);
+  }
+
+  ping(): Promise<boolean> {
+    return this.adapter.ping();
+  }
+
+  server_version(): Promise<string> {
+    return this.adapter.server_version();
+  }
+}
 
 export type T_raw_config = PoolConfig
 
@@ -23,7 +172,7 @@ export interface T_system_config {
 }
 
 export interface T_config_connection {
-  type: T_db_type
+  type: N_db_type
   host?: string
   port?: number
   username?: string
@@ -31,177 +180,95 @@ export interface T_config_connection {
   uri?: string
   migration?: T_migration_config
   system?: T_system_config
+  log?: boolean | Function | T_opt_log
+}
+
+export interface T_opt_log {
+  logger?: Function
+  log_params?: boolean
+}
+
+export interface IN_query<T_params = any> {
+  sql?: string
+  params?: T_params
 }
 
 /**
- * Pure DB server connection (without database)
+ * Connection interface
  */
-export class Connection<Config extends T_config_connection = T_config_connection> extends events.EventEmitter {
-  static def: T_config_connection | any = {
-    type: 'postgres',
-    migration: {
-      table_name: 'ormx_migration',
-      file_dir: resolve(pwd().toString(), 'database/migration'),
-      migration_file_suffix: '.m',
-    },
-    system: {
-      table_name: 'ormx_system',
-      ensure_database: true,
-    },
-  }
-  protected config?: Config
-  raw: Pool
-  protected raw_config: T_raw_config
+export interface T_connection {
+  pool?: Pg_pool | Mysql_pool
+  config?: T_config_connection;
+  raw_config?: any;
 
-  constructor(config?: Config) {
-    super()
-    if (config) { this.set_config(config) }
-  }
+  set_config(conf: T_config_connection): void,
 
-  /**
-   * Set connection config
-   * @param config
-   */
-  set_config(config: Config) {
-    // @ts-ignore
-    this.config = merge(this.constructor.def, config)
-    this.adapt_config()
-  }
-
-  /**
-   * Get connection config
-   */
-  get_config(): Config {
-    return cloneDeep(this.config)
-  }
-
-  /**
-   * Get adapted raw connection config
-   */
-  get_raw_config(): T_raw_config {
-    return cloneDeep(this.raw_config)
-  }
-
-  /**
-   * Get raw connection
-   */
-  get_raw() {
-    return this.raw
-  }
+  get_config(): T_config_connection
 
   /**
    * Convert `config` to "raw config" (e.g. mysql2 or pg config)
    */
-  adapt_config() {
-    this.raw_config = cloneDeep<Config>(this.config)
-    switch (this.config?.type) {
-      case 'postgres':
-        key_replacer(this.raw_config, { uri: 'connectionString', username: 'user' })
-        break
-      default:
-        not_supported_db(this.config?.type)
-    }
-  }
+  adapt_config(): void
 
   /**
-   * Config validation
+   * Validate connection configuration
    */
-  validate_config() {
-    const c = this.config
-    if ( ! c) { throw new Invalid_connection_config('Empty config') }
-    if ( ! c.system.table_name) { throw new Invalid_connection_config('Required: `system.table_name`') }
-
-    const m = c.migration
-    if (m) {
-      if ( ! m.table_name) { throw new Invalid_connection_config('Required: `migration.table_name`') }
-      if ( ! m.file_dir) { throw new Invalid_connection_config('Required: `migration.file_dir`') }
-    }
-  }
+  validate_config(): void
 
   /**
-   * Connect to database/pool
+   * Connect to database server
    */
-  async connect() {
-    this.validate_config()
-    switch (this.config?.type) {
-      case 'postgres':
-        const { Pool } = require('pg')
-        this.raw = new Pool(this.raw_config)
-        break
-      default:
-        not_supported_db(this.config?.type)
-    }
-
-    await this.init_state()
-  }
+  connect(): Promise<void>
 
   /**
    * Close connection
    */
-  async close() {
-    switch (this.config?.type) {
-      case 'postgres':
-        await this.raw?.end()
-        break
-      default:
-        not_supported_db(this.config?.type)
-    }
-    this.raw = null
-  }
-
-  async query<T>(config: QueryConfig)
-  async query<T>(sql: string, params?: any)
-  async query<T>(a, b?) {
-    if ( ! this.raw) { await this.connect() }
-    // @ts-ignore
-    return this.raw.query<T>(...arguments)
-  }
+  close(): Promise<void>
 
   /**
-   * Initialize database state
-   * Creating necessary tables and datum.
+   * Make a sql query
+   * @param sql
+   * @param params
    */
-  async init_state() {}
+  query<T = any, T_params = any>(opt: IN_query): Promise<T>
+
+  query<T = any, T_params = any>(sql: string, params?: T_params): Promise<T>
 
   /**
-   * Check if database exists
-   * @param name
+   * Drop database by name
    */
-  async database_exists(name: string): Promise<boolean> {
-    let r = false
-
-    switch (this.config.type) {
-      case 'postgres':
-        const a = await this.query(`select datname from pg_database where datname = '${name}'`)
-        r = a.rowCount ? a : false
-        break
-    }
-
-    return r
-  }
-
-  async database_create(name: string) {
-    await this.query(`create database ${name}`)
-  }
-
-  async database_drop(name: string) {
-    await this.query(`drop database if exists "${name}"`)
-  }
+  database_drop(name: string): Promise<void>
 
   /**
+   * Pick one database
+   * Can be used to check whether a  database exists.
+   */
+  database_pick(name: string): Promise<T_row_database>
+
+  /**
+   * List database
+   * Like "show databases" in mysql or "\l" in postgres
+   */
+  database_list(): Promise<T_row_database[]>
+
+  /**
+   * Create database
+   */
+  database_create(name: string): Promise<T_row_database>
+
+  /**
+   * Ensure database
    * Create database if not exists
-   * @param name
    */
-  async databases_ensure(name: string)
-  async databases_ensure(names: string[])
-  async databases_ensure(a) {
-    if (typeof a === 'string') {
-      a = [ a ]
-    }
+  databases_ensure(name: string): Promise<T_row_database>
 
-    for (const name of a) {
-      if (await this.database_exists(name)) { continue }
-      await this.database_create(name)
-    }
-  }
+  /**
+   * Test connection
+   */
+  ping(): Promise<boolean>
+
+  /**
+   * Get database server version info
+   */
+  server_version(): Promise<string>
 }

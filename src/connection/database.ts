@@ -1,10 +1,7 @@
-import { readdirSync } from 'fs'
 import { readdir, readFile } from 'fs-extra'
 import { resolve } from 'path'
-import { ls } from 'shelljs'
 import { Invalid_connection_config } from '../error/invalid_connection_config'
 import { Connection, T_config_connection, T_system_config } from './connection'
-import { difference } from 'lodash'
 
 export interface T_config_database extends T_config_connection {
   database: string
@@ -147,16 +144,16 @@ export class Database extends Connection<T_config_database> {
    */
   async migration_run(step: number = 0) {
     const diff = await this.migration_list_pending()
-    if ( ! step) {
-      step = diff.length
-    }
+    if ( ! step) { step = diff.length }
 
-    // for (let i = 0; i < step; i++) {
-    //   if (step - i < 1) { return }
-    //   const path = resolve(this.get_config().migration.file_dir, diff[i])
-    //   const modu = require(path)
-    //   await modu.forward()
-    // }
+    let i = step
+
+    for (let i = 0; i < step; i++) {
+      if (step - i < 1) { return }
+      const path = resolve(this.get_config().migration.file_dir, diff[i])
+      const modu = require(path)
+      await modu.forward()
+    }
   }
 
   /**
@@ -172,5 +169,4 @@ export class Database extends Connection<T_config_database> {
   static table_holder_name_build(i: number) {
     return `_holder${i}`
   }
-
 }

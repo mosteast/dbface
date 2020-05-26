@@ -1,7 +1,7 @@
-import { reload_env } from '@mosteast/env_helper'
-import { resolve } from 'path'
-import { Connection, T_config_connection } from '../../src/connection/connection'
-import { Database, T_config_database } from '../../src/connection/database'
+import { reload_env } from '@mosteast/env_helper';
+import { resolve } from 'path';
+import { Connection, T_config_connection, N_db_type } from '../../src/connection/connection';
+import { Database, T_config_database } from '../../src/connection/database';
 
 let db: Database
 let con: Connection
@@ -10,7 +10,7 @@ async function reset() {
   await reload_env(__dirname + '/../connection.test.asset.env')
   const database = process.env.ormx_database
   const conf_con: T_config_connection = {
-    type: 'postgres',
+    type: N_db_type.postgres,
     host: process.env.ormx_host,
     port: parseInt(process.env.ormx_port),
     username: process.env.ormx_username,
@@ -59,7 +59,7 @@ it('table_create_holder/table_drop_all', async () => {
 it('migration_run', async () => {
   const db = new Database({
     database: process.env.ormx_database,
-    type: 'postgres',
+    type: N_db_type.postgres,
     host: process.env.ormx_host,
     port: parseInt(process.env.ormx_port),
     username: process.env.ormx_username,
