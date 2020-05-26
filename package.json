@@ -1,7 +1,7 @@
 {
   "name": "ormx",
   "description": "ormx",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "homepage": "https://github.com/mosteast/ormx#readme",
   "repository": "github:mosteast/ormx",
   "main": "build/index.js",
