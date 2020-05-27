@@ -4,7 +4,7 @@ import { Connection_postgres, T_config_connection_postgres } from './connection_
 const e = process.env;
 
 const conf: T_config_connection_postgres = {
-  type: N_db_type.postgres,
+  dialect: N_db_type.postgres,
   host: e.postgres_host,
   port: +e.postgres_port,
   user: e.postgres_user,

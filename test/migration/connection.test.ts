@@ -6,7 +6,7 @@ let con: Connection
 async function reset() {
   await load_env_once(__dirname + '/../connection.test.asset.env')
   con = new Connection({
-    type: N_db_type.postgres,
+    dialect: N_db_type.postgres,
     host: process.env.ormx_host,
     port: parseInt(process.env.ormx_port),
     user: process.env.ormx_username,

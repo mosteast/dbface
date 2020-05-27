@@ -4,7 +4,7 @@ import { Connection_mysql, T_config_connection_mysql } from './connection_mysql'
 const e = process.env;
 
 const conf: T_config_connection_mysql = {
-  type: N_db_type.mysql,
+  dialect: N_db_type.mysql,
   host: e.mysql_host,
   port: +e.mysql_port,
   user: e.mysql_user,

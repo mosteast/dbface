@@ -1,7 +1,6 @@
-import { readdir, readFile } from 'fs-extra'
-import { resolve } from 'path'
-import { Invalid_connection_config } from '../error/invalid_connection_config'
-import { Connection, T_config_connection, T_system_config } from './connection'
+import { Database_postgres } from '../adapter/postgres/database_postgres';
+import { Invalid_connection_config } from '../error/invalid_connection_config';
+import { Connection, T_config_connection, T_system_config } from './connection';
 
 export interface T_config_database extends T_config_connection {
   database: string
@@ -11,13 +10,15 @@ export interface T_config_database extends T_config_connection {
 /**
  * Connection with selected database
  */
-export class Database extends Connection<T_config_database> {
+export class Database extends Connection {
   // static def: T_config_database = merge(Connection.def, { system: { ensure_database: true } })
-  config: T_config_database
+  config: T_config_database;
+
+  adapter: Database_postgres;
 
   validate_config() {
-    super.validate_config()
-    if ( ! this.config.database) { throw new Invalid_connection_config('Required configs: {database}') }
+    super.validate_config();
+    if ( ! this.config.database) { throw new Invalid_connection_config('Required configs: {database}'); }
   }
 
   /**
@@ -35,138 +36,93 @@ export class Database extends Connection<T_config_database> {
             and relname = $1
             and relname 
           not like 'pg_%'
-        order by 1`, [ table ])
+        order by 1`, [ table ]);
 
-    return r.rowCount ? r : false
+    return r.rowCount ? r : false;
   }
 
   /**
    * Get all tables
    */
-  async table_list(): Promise<{ name: string }[]> {
-    const { rows } = await this.query(`
-      select c.relname as name 
-        from pg_catalog.pg_class c 
-          left join pg_catalog.pg_namespace n on n.oid = c.relnamespace 
-          where pg_catalog.pg_table_is_visible(c.oid) 
-            and c.relkind = 'r' 
-            and relname 
-          not like 'pg_%'`)
-    return rows
+  async table_list() {
+    return this.adapter.table_list();
   }
 
   /**
    * Table count
    */
   async table_count(): Promise<number> {
-    return (await this.table_list()).length
+    return this.adapter.table_count();
   }
 
   async table_drop(table: string) {
-    await this.query(`drop table if exists "${table}"`)
+    return this.adapter.table_drop(table);
   }
 
   /**
    * Drop all tables
    */
   async table_drop_all() {
-    const list = await this.table_list()
-    for (const it of list) {
-      await this.table_drop(it.name)
-    }
+    return this.adapter.table_drop_all();
   }
 
   /**
    * Create migration table if not exists
    */
   async table_ensure_migration() {
-    const name = this.get_config().migration.table_name
-
-    if (await this.table_exists(name)) { return }
-    await this.query(`
-           create table "${name}" (
-              id varchar (50) unique not null,
-              step integer not null
-           )`)
+    await this.adapter.table_ensure_migration();
   }
 
   /**
    * Create placeholder table (mostly for testing purpose)
    */
   async table_create_holder(i: number) {
-    // @ts-ignore
-    await this.query(`create table ${(this.constructor).table_holder_name_build(i)} (id serial primary key)`)
+    await this.adapter.table_create_holder(i);
   }
 
   /**
    * Creating necessary tables and datum for migration.
    */
   async init_state_migration() {
-    const c = this.config
-    if ( ! c.migration) { return }
-    await this.table_ensure_migration()
+    await this.adapter.init_state_migration();
   }
 
   /**
    * List all migrated records
    */
   async migration_list_migrated() {
-    const table = this.get_config().migration.table_name
-    const { rows } = await this.query(`select * from ${table}`)
-
-    return rows
+    await this.adapter.migration_list_migrated();
   }
 
   /**
    * List all not migrated files
    */
   async migration_list_pending(): Promise<string[]> {
-    const db = await this.migration_list_migrated()
-    const files = await this.migration_list_files()
-    for (const [ i, it ] of files.entries()) {
-      if (db.includes(it)) {
-        continue
-      }
-
-      return files.slice(i, files.length)
-    }
+    return await this.adapter.migration_list_pending();
   }
 
   async migration_list_files(): Promise<string[]> {
-    const dir = this.get_config().migration.file_dir
-    const suffix = this.get_config().migration.migration_file_suffix
-    const re = new RegExp(`.+${suffix}\.(?:js|ts)$`)
-    return (await readdir(dir)).filter(it => re.test(it))
+    return this.adapter.migration_list_files();
   }
 
   /**
    * Run migration
    */
   async migration_run(step: number = 0) {
-    const diff = await this.migration_list_pending()
-    if ( ! step) { step = diff.length }
-
-    let i = step
-
-    for (let i = 0; i < step; i++) {
-      if (step - i < 1) { return }
-      const path = resolve(this.get_config().migration.file_dir, diff[i])
-      const modu = require(path)
-      await modu.forward()
-    }
+    return this.adapter.migration_run();
   }
 
   /**
    * Read migration file by name (only file name)
    */
   async migration_file_read(file_name: string) {
-    return readFile(resolve(this.get_config().migration.file_dir, file_name))
+    return this.adapter.migration_file_read(file_name);
   }
 
   /**
    * Build table holder name
    */
   static table_holder_name_build(i: number) {
-    return `_holder${i}`
+    return `_holder${i}`;
   }
 }

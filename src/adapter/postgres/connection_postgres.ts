@@ -81,6 +81,10 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
   adapt_config(): void {
     const copy: any = cloneDeep(this.config);
     delete copy.log;
+    delete copy.migration;
+    delete copy.system;
+    delete copy.dialect;
+    
     this.raw_config = copy;
     key_replace(this.raw_config, { uri: 'connectionString' });
   }
@@ -165,5 +169,5 @@ limit 1`.trim(), [ name ]);
 }
 
 export interface T_config_connection_postgres extends T_config_connection {
-  type: N_db_type.postgres
+  dialect: N_db_type.postgres
 }

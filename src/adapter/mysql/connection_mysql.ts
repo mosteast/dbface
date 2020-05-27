@@ -7,7 +7,7 @@ import { IN_query, N_db_type, T_config_connection, T_connection, T_opt_log } fro
 import { T_row_database, table_migration, table_system } from '../../type';
 
 export interface T_config_connection_mysql extends T_config_connection {
-  type: N_db_type.mysql
+  dialect: N_db_type.mysql
 }
 
 const env = process.env;
@@ -79,12 +79,11 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
   adapt_config(): void {
     const copy: any = cloneDeep(this.config);
     delete copy.log;
-    delete copy.type;
     delete copy.migration;
     delete copy.system;
+    delete copy.dialect;
 
     this.raw_config = copy;
-    console.log(copy);
     // key_replace(this.raw_config, { uri: 'connectionString', username: 'user' });
   }
 

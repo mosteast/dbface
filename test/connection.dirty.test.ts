@@ -2,7 +2,7 @@ import { Connection, N_db_type, T_config_connection } from '../src/connection/co
 
 it('can connect database', async () => {
   const conf: T_config_connection = {
-    type: N_db_type.mysql,
+    dialect: N_db_type.mysql,
     user: 'root',
     password: process.env.mysql_password,
   };

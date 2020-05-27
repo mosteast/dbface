@@ -172,7 +172,7 @@ export interface T_system_config {
 }
 
 export interface T_config_connection {
-  type: N_db_type
+  dialect: N_db_type
   host?: string
   port?: number
   user?: string
