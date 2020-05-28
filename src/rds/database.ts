@@ -132,7 +132,7 @@ export interface T_database extends T_connection {
 
 export interface T_table {
   name: string
-  fields?: T_field_common[]
+  fields?: T_field[]
 }
 
 export interface T_field_common {

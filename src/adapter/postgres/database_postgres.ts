@@ -1,9 +1,9 @@
 import { readdir, readFile } from 'fs-extra';
 import { resolve } from 'path';
-import { N_db_type } from '../../rds/connection';
-import { T_config_database, T_database, T_table } from '../../rds/database';
 import { Invalid_connection_config } from '../../error/invalid_connection_config';
 import { Invalid_state } from '../../error/invalid_state';
+import { N_db_type } from '../../rds/connection';
+import { T_config_database, T_database, T_table } from '../../rds/database';
 import { Connection_postgres } from './connection_postgres';
 
 const e = require('pg-escape');
@@ -44,7 +44,7 @@ export class Database_postgres extends Connection_postgres implements T_database
         from pg_catalog.pg_class c 
           left join pg_catalog.pg_namespace n on n.oid = c.relnamespace 
           where pg_catalog.pg_table_is_visible(c.oid) 
-            and c.relkind = 'r' 
+            and c.relkind = 'r'
             and relname = $1
             and relname 
           not like 'pg_%' limit 1`, [ table ]);
