@@ -1,9 +1,12 @@
 import { readdir, readFile } from 'fs-extra';
 import { resolve } from 'path';
 import { N_db_type } from '../../connection/connection';
-import { T_config_database } from '../../connection/database';
+import { T_config_database, T_database, T_table } from '../../connection/database';
 import { Invalid_connection_config } from '../../error/invalid_connection_config';
+import { Invalid_state } from '../../error/invalid_state';
 import { Connection_postgres } from './connection_postgres';
+
+const e = require('pg-escape');
 
 export interface T_config_database_postgres extends T_config_database {
   dialect: N_db_type.postgres
@@ -12,7 +15,7 @@ export interface T_config_database_postgres extends T_config_database {
 /**
  * Connection with selected database
  */
-export class Database_postgres extends Connection_postgres {
+export class Database_postgres extends Connection_postgres implements T_database {
   // static def: T_config_database = merge(Connection.def, { system: { ensure_database: true } })
   config: T_config_database_postgres;
 
@@ -22,12 +25,21 @@ export class Database_postgres extends Connection_postgres {
   }
 
   /**
-   * Check if table exists
-   * @param table - table name
-   * @param database - database name
+   * Create testing table
    */
-  async table_exists(table: string): Promise<boolean> {
-    const r = await this.query(`
+  async table_create_test(name: string) {
+    const env = process.env.NODE_ENV;
+    if (env !== 'testing') { throw new Invalid_state(`Invalid NODE_ENV ${env}, testing table will only be created in testing environment`); }
+
+    await this.query(e(`create table if not exists "%I" (id serial primary key)`, [ name ]));
+  }
+
+  /**
+   * Get one table info
+   * @param table
+   */
+  async table_pick(table: string): Promise<T_table> {
+    const r = await this.query<T_table>(`
       select c.relname as name 
         from pg_catalog.pg_class c 
           left join pg_catalog.pg_namespace n on n.oid = c.relnamespace 
@@ -35,44 +47,53 @@ export class Database_postgres extends Connection_postgres {
             and c.relkind = 'r' 
             and relname = $1
             and relname 
-          not like 'pg_%'
-        order by 1`, [ table ]);
+          not like 'pg_%' limit 1`, [ table ]);
 
-    return r.rowCount ? r : false;
+    return r.rows[0];
   }
 
   /**
    * Get all tables
    */
-  async table_list(): Promise<{ name: string }[]> {
-    const { rows } = await this.query(`
-      select c.relname as name 
-        from pg_catalog.pg_class c 
-          left join pg_catalog.pg_namespace n on n.oid = c.relnamespace 
-          where pg_catalog.pg_table_is_visible(c.oid) 
-            and c.relkind = 'r' 
-            and relname 
-          not like 'pg_%'`);
-    return rows;
+  async table_list(): Promise<T_table[]> {
+    const r = await this.query<T_table>(`
+      select n.nspname as "schema",
+        c.relname as "name",
+        case c.relkind when 'r' then 'table' when 'v' then 'view' when 'm' then 'materialized view' when 'i' then 'index' when 's' then 'sequence' when 's' then 'special' when 'f' then 'foreign table' when 'p' then 'partitioned table' when 'i' then 'partitioned index' end as "type",
+        pg_catalog.pg_get_userbyid(c.relowner) as "owner"
+      from pg_catalog.pg_class c
+           left join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+      where c.relkind in ('r','p','')
+            and n.nspname <> 'pg_catalog'
+            and n.nspname <> 'information_schema'
+            and n.nspname !~ '^pg_toast'
+        and pg_catalog.pg_table_is_visible(c.oid)
+      order by 1,2;`.trim());
+
+    return r.rows;
   }
 
   /**
-   * Table count
+   * Count table number
    */
   async table_count(): Promise<number> {
     return (await this.table_list()).length;
   }
 
+  /**
+   * Drop one table
+   * @param table
+   */
   async table_drop(table: string) {
-    await this.query(`drop table if exists "${table}"`);
+    await this.query(e(`drop table if exists "%I"`, table));
   }
 
   /**
    * Drop all tables
    */
   async table_drop_all() {
-    const list = await this.table_list();
-    for (const it of list) {
+    const r = await this.table_list();
+    for (const it of r) {
       await this.table_drop(it.name);
     }
   }
@@ -83,7 +104,7 @@ export class Database_postgres extends Connection_postgres {
   async table_ensure_migration() {
     const name = this.get_config().migration.table_name;
 
-    if (await this.table_exists(name)) { return; }
+    if (await this.table_pick(name)) { return; }
     await this.query(`
            create table "${name}" (
               id varchar (50) unique not null,
@@ -92,17 +113,9 @@ export class Database_postgres extends Connection_postgres {
   }
 
   /**
-   * Create placeholder table (mostly for testing purpose)
-   */
-  async table_create_holder(i: number) {
-    // @ts-ignore
-    await this.query(`create table ${(this.constructor).table_holder_name_build(i)} (id serial primary key)`);
-  }
-
-  /**
    * Creating necessary tables and datum for migration.
    */
-  async init_state_migration() {
+  async migration_init_state() {
     const c = this.config;
     if ( ! c.migration) { return; }
     await this.table_ensure_migration();
@@ -160,14 +173,7 @@ export class Database_postgres extends Connection_postgres {
   /**
    * Read migration file by name (only file name)
    */
-  async migration_file_read(file_name: string) {
+  async migration_file_read(file_name: string): Promise<Buffer> {
     return readFile(resolve(this.get_config().migration.file_dir, file_name));
-  }
-
-  /**
-   * Build table holder name
-   */
-  static table_holder_name_build(i: number) {
-    return `_holder${i}`;
   }
 }

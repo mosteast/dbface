@@ -114,8 +114,8 @@ export class Connection extends events.EventEmitter implements T_connection {
     await this.adapter.close();
   }
 
-  async query<T = any, T_params = any>(opt: IN_query): Promise<T>
-  async query<T = any, T_params = any>(sql: string, params: T_params): Promise<T>
+  async query<T = any, T_params = any>(opt: IN_query): Promise<T_result<T>>
+  async query<T = any, T_params = any>(sql: string, params: T_params): Promise<T_result<T>>
   async query(a, b?) {
     return this.adapter.query(a, b);
   }
@@ -129,7 +129,7 @@ export class Connection extends events.EventEmitter implements T_connection {
 
   }
 
-  async database_list(): Promise<T_row_database[]> {
+  async database_list(): Promise<T_result<T_row_database>> {
     return this.adapter.database_list();
   }
 
@@ -145,8 +145,8 @@ export class Connection extends events.EventEmitter implements T_connection {
    * Create database if not exists
    * @param name
    */
-  async databases_ensure(name: string): Promise<T_row_database> {
-    return this.adapter.databases_ensure(name);
+  async database_ensure(name: string): Promise<T_row_database> {
+    return this.adapter.database_ensure(name);
   }
 
   ping(): Promise<boolean> {
@@ -249,7 +249,7 @@ export interface T_connection {
    * List database
    * Like "show databases" in mysql or "\l" in postgres
    */
-  database_list(): Promise<T_row_database[]>
+  database_list(): Promise<T_result<T_row_database>>
 
   /**
    * Create database
@@ -260,7 +260,7 @@ export interface T_connection {
    * Ensure database
    * Create database if not exists
    */
-  databases_ensure(name: string): Promise<T_row_database>
+  database_ensure(name: string): Promise<T_row_database>
 
   /**
    * Test connection
@@ -272,3 +272,9 @@ export interface T_connection {
    */
   server_version(): Promise<string>
 }
+
+export interface T_result<T = any> {
+  rows: T[]
+  count?: number
+}
+

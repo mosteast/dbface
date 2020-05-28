@@ -3,7 +3,7 @@ import { cloneDeep, merge } from 'lodash';
 import { resolve } from 'path';
 import { Pool, PoolClient, PoolConfig } from 'pg';
 import { pwd } from 'shelljs';
-import { IN_query, N_db_type, T_config_connection, T_connection, T_opt_log } from '../../connection/connection';
+import { IN_query, N_db_type, T_config_connection, T_connection, T_opt_log, T_result } from '../../connection/connection';
 import { T_row_database, table_migration, table_system } from '../../type';
 import { key_replace } from '../../util/obj';
 
@@ -15,10 +15,10 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
   /**
    * Default configuration as a base to merge
    */
-  static def: T_config_connection_postgres | any = {
-    type: N_db_type.postgres,
+  static def: T_config_connection_postgres = {
+    dialect: N_db_type.postgres,
     host: env.ormx_type,
-    port: env.ormx_port,
+    port: +env.ormx_port,
     user: env.ormx_user,
     password: env.ormx_password,
     uri: env.ormx_uri,
@@ -38,9 +38,20 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
   raw_config: PoolConfig;
   config: T_config_connection_postgres;
 
+  constructor(config?: T_config_connection) {
+    super();
+    if (config) { this.set_config(config); }
+  }
+
   async connect(): Promise<void> {
     if ( ! this.pool) {
-      this.pool = new Pool(this.raw_config);
+      const conf = this.raw_config;
+      // If is pure connection
+      if (this.constructor.name === Connection_postgres.name) {
+        delete conf.database; // delete database option to prevent database not exist exception
+      }
+
+      this.pool = new Pool(conf);
     }
 
     this.client = await this.pool.connect();
@@ -84,7 +95,7 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
     delete copy.migration;
     delete copy.system;
     delete copy.dialect;
-    
+
     this.raw_config = copy;
     key_replace(this.raw_config, { uri: 'connectionString' });
   }
@@ -109,7 +120,7 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
     await this.query(e(`drop database if exists "%I"`, name));
   }
 
-  async database_list(): Promise<T_row_database[]> {
+  async database_list(): Promise<T_result<T_row_database>> {
     return this.query(`
 select d.datname as "name",
        pg_catalog.pg_get_userbyid(d.datdba) as "owner",
@@ -132,15 +143,15 @@ limit 1`.trim(), [ name ]);
     return r.rows[0];
   }
 
-  async databases_ensure(name: string): Promise<T_row_database> {
+  async database_ensure(name: string): Promise<T_row_database> {
     const exist = await this.database_pick(name);
     if (exist) { return exist; }
 
     return await this.database_create(name);
   }
 
-  async query<T = any, T_params = any>(opt: IN_query<T_params>): Promise<T>;
-  async query<T = any, T_params = any>(sql: string, params?: T_params): Promise<T>;
+  async query<T = any, T_params = any>(opt: IN_query<T_params>): Promise<T_result<T>>;
+  async query<T = any, T_params = any>(sql: string, params?: T_params): Promise<T_result<T>>;
   async query<T = any, T_params = any>(a, b?) {
     let opt: IN_query = {};
     if (typeof a === 'string') {
@@ -150,9 +161,8 @@ limit 1`.trim(), [ name ]);
       opt = a;
     }
 
-    this.log(opt);
     const r = await this.client.query<T>({ text: opt.sql, values: opt.params });
-    return key_replace(r, { rowCount: 'count' });
+    return key_replace<T_result<T>>(r, { rowCount: 'count' });
   }
 
   log({ sql, params }: IN_query) {

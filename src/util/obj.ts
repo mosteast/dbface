@@ -3,7 +3,7 @@
  * @param obj
  * @param replace
  */
-export function key_replace(obj: object, replace: object) {
+export function key_replace<T = any>(obj: any, replace: { [key: string]: keyof T }): T {
   for (const key in obj) {
     const new_key = replace[key];
     if (new_key !== undefined && new_key !== null) {

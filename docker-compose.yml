@@ -10,7 +10,7 @@ services:
       - ${postgres_port}:${postgres_port_internal}
     environment:
       POSTGRES_PASSWORD: ${postgres_password}
-      POSTGRES_USER: ${postgres_username}
+      POSTGRES_USER: ${postgres_user}
   mysql:
     hostname: mysql
     restart: always

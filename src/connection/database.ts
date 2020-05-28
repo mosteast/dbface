@@ -1,6 +1,6 @@
 import { Database_postgres } from '../adapter/postgres/database_postgres';
 import { Invalid_connection_config } from '../error/invalid_connection_config';
-import { Connection, T_config_connection, T_system_config } from './connection';
+import { Connection, T_config_connection, T_connection, T_system_config } from './connection';
 
 export interface T_config_database extends T_config_connection {
   database: string
@@ -10,35 +10,26 @@ export interface T_config_database extends T_config_connection {
 /**
  * Connection with selected database
  */
-export class Database extends Connection {
+export class Database extends Connection implements T_database {
   // static def: T_config_database = merge(Connection.def, { system: { ensure_database: true } })
   config: T_config_database;
 
   adapter: Database_postgres;
 
+  /**
+   * Validate database configurations
+   */
   validate_config() {
     super.validate_config();
     if ( ! this.config.database) { throw new Invalid_connection_config('Required configs: {database}'); }
   }
 
   /**
-   * Check if table exists
-   * @param table - table name
-   * @param database - database name
+   * Get one table info
+   * @param name
    */
-  async table_exists(table: string): Promise<boolean> {
-    const r = await this.query(`
-      select c.relname as name 
-        from pg_catalog.pg_class c 
-          left join pg_catalog.pg_namespace n on n.oid = c.relnamespace 
-          where pg_catalog.pg_table_is_visible(c.oid) 
-            and c.relkind = 'r' 
-            and relname = $1
-            and relname 
-          not like 'pg_%'
-        order by 1`, [ table ]);
-
-    return r.rowCount ? r : false;
+  async table_pick(name: string): Promise<T_table> {
+    return this.adapter.table_pick(name);
   }
 
   /**
@@ -74,31 +65,24 @@ export class Database extends Connection {
   }
 
   /**
-   * Create placeholder table (mostly for testing purpose)
-   */
-  async table_create_holder(i: number) {
-    await this.adapter.table_create_holder(i);
-  }
-
-  /**
    * Creating necessary tables and datum for migration.
    */
-  async init_state_migration() {
-    await this.adapter.init_state_migration();
+  async migration_init_state() {
+    await this.adapter.migration_init_state();
   }
 
   /**
    * List all migrated records
    */
   async migration_list_migrated() {
-    await this.adapter.migration_list_migrated();
+    return this.adapter.migration_list_migrated();
   }
 
   /**
    * List all not migrated files
    */
   async migration_list_pending(): Promise<string[]> {
-    return await this.adapter.migration_list_pending();
+    return this.adapter.migration_list_pending();
   }
 
   async migration_list_files(): Promise<string[]> {
@@ -109,20 +93,43 @@ export class Database extends Connection {
    * Run migration
    */
   async migration_run(step: number = 0) {
-    return this.adapter.migration_run();
+    return this.adapter.migration_run(step);
   }
 
   /**
    * Read migration file by name (only file name)
    */
-  async migration_file_read(file_name: string) {
+  async migration_file_read(file_name: string): Promise<Buffer> {
     return this.adapter.migration_file_read(file_name);
   }
+}
 
-  /**
-   * Build table holder name
-   */
-  static table_holder_name_build(i: number) {
-    return `_holder${i}`;
-  }
+export interface T_database extends T_connection {
+  table_count(): Promise<number>
+
+  table_drop(name: string): Promise<void>
+
+  table_drop_all(): Promise<void>
+
+  table_ensure_migration(): Promise<void>
+
+  table_list(): Promise<T_table[]>
+
+  table_pick(name: string): Promise<T_table>
+
+  migration_init_state(): Promise<void>
+
+  migration_file_read(file_name: string): Promise<Buffer>
+
+  migration_list_files(): Promise<string[]>
+
+  migration_list_migrated(): Promise<any[]>
+
+  migration_list_pending(): Promise<any[]>
+
+  migration_run(step?: number): Promise<void>
+}
+
+export interface T_table {
+  name: string
 }

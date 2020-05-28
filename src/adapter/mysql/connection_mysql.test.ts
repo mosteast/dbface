@@ -39,7 +39,7 @@ it('database_pick', async () => {
 
 it('database_drop', async () => {
   const name = 'a';
-  await con.databases_ensure(name);
+  await con.database_ensure(name);
   expect((await con.database_pick(name))).toBeTruthy();
   await con.database_drop(name);
   expect((await con.database_pick(name))).toBeFalsy();

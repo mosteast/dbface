@@ -22,7 +22,7 @@ async function reset() {
   con = new Connection(conf_con)
   db = new Database(conf_db)
 
-  await con.databases_ensure(database)
+  await con.database_ensure(database)
   await db.table_drop_all()
 }
 
