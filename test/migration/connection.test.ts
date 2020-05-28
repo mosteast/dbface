@@ -1,5 +1,5 @@
 import { load_env_once } from '@mosteast/env_helper';
-import { Connection, N_db_type } from '../../src/connection/connection';
+import { Connection, N_db_type } from '../../src/rds/connection';
 
 let con: Connection
 

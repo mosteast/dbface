@@ -1,4 +1,4 @@
-import { N_db_type } from '../connection/connection';
+import { N_db_type } from '../rds/connection';
 import { Sql_tree } from './sql_tree';
 
 it('parse select', async () => {

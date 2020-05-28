@@ -1,4 +1,4 @@
-import { N_db_type } from '../../connection/connection';
+import { N_db_type } from '../../rds/connection';
 import { Connection_mysql, T_config_connection_mysql } from './connection_mysql';
 
 const e = process.env;

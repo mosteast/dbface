@@ -1,5 +1,5 @@
 import { isArray, merge } from 'lodash';
-import { N_db_type } from '../connection/connection';
+import { N_db_type } from '../rds/connection';
 import { Invalid_sql_tree_syntax } from '../error/invalid_sql_tree_syntax';
 
 export type T_node = (T_node | string | number)[]

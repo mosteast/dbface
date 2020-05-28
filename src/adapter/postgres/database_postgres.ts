@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'fs-extra';
 import { resolve } from 'path';
-import { N_db_type } from '../../connection/connection';
-import { T_config_database, T_database, T_table } from '../../connection/database';
+import { N_db_type } from '../../rds/connection';
+import { T_config_database, T_database, T_table } from '../../rds/database';
 import { Invalid_connection_config } from '../../error/invalid_connection_config';
 import { Invalid_state } from '../../error/invalid_state';
 import { Connection_postgres } from './connection_postgres';

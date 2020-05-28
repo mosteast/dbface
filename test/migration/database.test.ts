@@ -1,7 +1,7 @@
 import { reload_env } from '@mosteast/env_helper';
 import { resolve } from 'path';
-import { Connection, T_config_connection, N_db_type } from '../../src/connection/connection';
-import { Database, T_config_database } from '../../src/connection/database';
+import { Connection, T_config_connection, N_db_type } from '../../src/rds/connection';
+import { Database, T_config_database } from '../../src/rds/database';
 
 let db: Database
 let con: Connection

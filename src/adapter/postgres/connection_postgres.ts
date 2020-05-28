@@ -3,7 +3,7 @@ import { cloneDeep, merge } from 'lodash';
 import { resolve } from 'path';
 import { Pool, PoolClient, PoolConfig } from 'pg';
 import { pwd } from 'shelljs';
-import { IN_query, N_db_type, T_config_connection, T_connection, T_opt_log, T_result } from '../../connection/connection';
+import { IN_query, N_db_type, T_config_connection, T_connection, T_opt_log, T_result } from '../../rds/connection';
 import { T_row_database, table_migration, table_system } from '../../type';
 import { key_replace } from '../../util/obj';
 
