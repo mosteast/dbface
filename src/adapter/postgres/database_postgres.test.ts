@@ -42,7 +42,7 @@ it('table_list', async () => {
   for (const it of tbs) { await db.table_drop(it); }
 });
 
-it('table_list', async () => {
+it('table_list/table_count', async () => {
   const tbs = [ 'a', 'b', 'c' ];
   for (const it of tbs) { await db.table_create_test(it); }
   const r = await db.table_list();
@@ -51,14 +51,12 @@ it('table_list', async () => {
   expect(await db.table_pick(tbs[1])).toBeTruthy();
   expect(await db.table_pick(tbs[2])).toBeTruthy();
   expect(await db.table_pick(tbs[3])).toBeFalsy();
+  expect(await db.table_count()).toBe(tbs.length);
   for (const it of tbs) { await db.table_drop(it); }
   expect(await db.table_pick(tbs[0])).toBeFalsy();
   expect(await db.table_pick(tbs[1])).toBeFalsy();
   expect(await db.table_pick(tbs[2])).toBeFalsy();
-});
-
-it('table_create', async () => {
-
+  expect(await db.table_count()).toBe(0);
 });
 
 it('table_pick', async () => {
@@ -66,4 +64,12 @@ it('table_pick', async () => {
   const row = await db.table_pick('a');
   expect(row?.fields?.length).toBeTruthy();
   await db.table_drop('a');
+});
+
+it('table_ensure_migration/table_drop_migration', async () => {
+  const name = db.get_config().migration?.table_name as string;
+  await db.table_ensure_migration();
+  expect(await db.table_pick(name)).toBeTruthy();
+  await db.table_drop_migration();
+  expect(await db.table_pick(name)).toBeFalsy();
 });

@@ -160,14 +160,28 @@ export class Database_postgres extends Connection_postgres implements T_database
   }
 
   /**
+   * Drop migration table
+   */
+  async table_drop_migration(): Promise<void> {
+    const name = this.get_config().migration?.table_name as string;
+    await this.query(`drop table if exists "${name}"`);
+  }
+
+  /**
+   * Truncate migration table
+   */
+  async table_clear_migration(): Promise<void> {
+    const name = this.get_config().migration?.table_name as string;
+    await this.query(`truncate "${name}"`);
+  }
+
+  /**
    * Create migration table if not exists
    */
-  async table_ensure_migration() {
+  async table_ensure_migration(): Promise<void> {
     const name = this.get_config().migration?.table_name as string;
-
-    if (await this.table_pick(name)) { return; }
     await this.query(`
-           create table "${name}" (
+           create table if not exists "${name}" (
               id varchar (50) unique not null,
               step integer not null
            )`);
@@ -176,7 +190,7 @@ export class Database_postgres extends Connection_postgres implements T_database
   /**
    * Creating necessary tables and datum for migration.
    */
-  async migration_init_state() {
+  async migration_init_state(): Promise<void> {
     const c = this.config;
     if ( ! c.migration) { return; }
     await this.table_ensure_migration();

@@ -102,31 +102,87 @@ export class Database extends Connection implements T_database {
   async migration_file_read(file_name: string): Promise<Buffer> {
     return this.adapter.migration_file_read(file_name);
   }
+
+  async table_clear_migration(): Promise<void> {
+    await this.adapter.table_clear_migration();
+  }
+
+  async table_drop_migration(): Promise<void> {
+    await this.adapter.table_drop_migration();
+  }
 }
 
 export interface T_database extends T_connection {
+  /**
+   * Count table number
+   */
   table_count(): Promise<number>
 
+  /**
+   * Drop one table
+   * @param table
+   */
   table_drop(name: string): Promise<void>
 
+  /**
+   * Drop all tables from current database
+   */
   table_drop_all(): Promise<void>
 
+  /**
+   * Create migration table if not exists
+   */
   table_ensure_migration(): Promise<void>
 
+  /**
+   * Get all tables' info
+   */
   table_list(): Promise<T_table[]>
 
+  /**
+   * Get one table info
+   * @param name
+   */
   table_pick(name: string): Promise<T_table | null>
 
+  /**
+   * Drop migration table
+   */
+  table_drop_migration(): Promise<void>
+
+  /**
+   * Truncate migration table
+   */
+  table_clear_migration(): Promise<void>
+
+  /**
+   * Creating necessary tables and datum for migration.
+   */
   migration_init_state(): Promise<void>
 
+  /**
+   * Read migration file by name (only file name)
+   */
   migration_file_read(file_name: string): Promise<Buffer>
 
+  /**
+   * List all migration files (both migrated and not migrated)
+   */
   migration_list_files(): Promise<string[]>
 
+  /**
+   * List all migrated records
+   */
   migration_list_migrated(): Promise<any[]>
 
+  /**
+   * List all not migrated files
+   */
   migration_list_pending(): Promise<any[]>
 
+  /**
+   * Run migration
+   */
   migration_run(step?: number): Promise<void>
 }
 
