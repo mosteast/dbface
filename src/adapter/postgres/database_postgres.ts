@@ -31,7 +31,23 @@ export class Database_postgres extends Connection_postgres implements T_database
     const env = process.env.NODE_ENV;
     if (env !== 'testing') { throw new Invalid_state(`Invalid NODE_ENV ${env}, testing table will only be created in testing environment`); }
 
-    await this.query(e(`create table if not exists "%I" (id serial primary key, int_ int, varchar_ varchar, timestamp_ timestamp, interval_ interval, not_null_ int not null)`, [ name ]));
+    await this.query(e(`
+      create table if not exists "%I" (
+        id serial primary key, 
+        smallint_ smallint,
+        int_ int,
+        bigint_ bigint,
+        int2_ int2,
+        int4_ int4,
+        int8_ int8,
+        decimal_ decimal(10, 2),
+        numeric_ numeric,
+        float_ float,
+        real_ real,
+        varchar_ varchar, 
+        timestamp_ timestamp, 
+        interval_ interval, 
+        not_null_ int not null)`, [ name ]));
   }
 
   /**
@@ -97,7 +113,7 @@ export class Database_postgres extends Connection_postgres implements T_database
           where pg_catalog.pg_table_is_visible(c.oid)
             and c.relkind = 'r'
             and relname not like 'pg_%'`);
-    
+
     return r.rows.map(it => it.name);
   }
 
