@@ -393,3 +393,9 @@ export interface T_value_transformer<From = any, To = any> {
 
   getter(value: From): To
 }
+
+export interface T_migration_module {
+  forward(database: Database): Promise<void>
+
+  backward(database: Database): Promise<void>
+}
