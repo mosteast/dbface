@@ -116,7 +116,7 @@ select d.datname as "name",
        pg_catalog.pg_encoding_to_char(d.encoding) as "encoding",
        d.datcollate as "collate"
 from pg_catalog.pg_database d
-order by 1;`.trim());
+order by 1;`);
   }
 
   async database_pick(name: string): Promise<T_row_database> {
@@ -127,7 +127,7 @@ select d.datname as "name",
        d.datcollate as "collate"
 from pg_catalog.pg_database d
 where d.datname = $1
-limit 1`.trim(), [ name ]);
+limit 1`, [ name ]);
 
     return r.rows[0];
   }
@@ -150,6 +150,7 @@ limit 1`.trim(), [ name ]);
       opt = a;
     }
 
+    this.log(opt);
     const r = await this.client.query({ text: opt.sql, values: opt.params } as QueryConfig);
     return key_replace<T_result<T>>(r, { rowCount: 'count' });
   }
@@ -162,7 +163,7 @@ limit 1`.trim(), [ name ]);
         param_part = '-- ' + JSON.stringify(params);
       }
 
-      log.logger!(sql, param_part);
+      log.logger!(sql?.trim(), param_part);
     }
   }
 }

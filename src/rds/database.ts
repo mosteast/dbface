@@ -113,6 +113,10 @@ export class Database extends Connection implements T_database {
   state_reset(): Promise<void> {
     return this.adapter.state_reset();
   }
+
+  migration_get_files(ids: number[]): Promise<string[]> {
+    return Promise.resolve([]);
+  }
 }
 
 export interface T_database extends T_connection {
@@ -185,6 +189,7 @@ export interface T_database extends T_connection {
 
   /**
    * Creating necessary tables and datum for migration.
+   * --> 2
    */
   migration_last(): Promise<number>
 
@@ -195,18 +200,28 @@ export interface T_database extends T_connection {
 
   /**
    * List all migration file names
+   * --> ['1.create_xx.m.ts', '2.create_xx.m.ts', '3.create_xx.m.ts']
    */
   migration_list_all(): Promise<string[]>
 
   /**
    * List all migration ids (files' numeric prefix)
+   * --> [1, 2, 3]
    */
   migration_list_all_ids(): Promise<number[]>
+
+  /**
+   * Get migration file paths by ids
+   * @param ids
+   * @example
+   * [1, 3] --> ['1.create_xx.m.ts', '3.create_xx.m.ts']
+   */
+  migration_get_files(ids: number[]): Promise<string[]>
 }
 
 export interface T_table {
   name: string
-  fields?: T_field[]
+  fields?: { [name: string]: T_field }
 }
 
 export interface T_field_common {
@@ -306,7 +321,7 @@ export interface T_field extends T_field_common {
   /**
    * ON UPDATE trigger. Works only for MySQL.
    */
-  onUpdate?: string;
+  on_update?: string;
   /**
    * Indicates if this column is a primary key.
    * Same can be achieved when @PrimaryColumn decorator is used.
@@ -370,7 +385,7 @@ export interface T_field extends T_field_common {
   /**
    * Spatial Feature Type (Geometry, Point, Polygon, etc.)
    */
-  spatialFeatureType?: string;
+  spatial_feature_type?: string;
   /**
    * SRID (Spatial Reference ID (EPSG code))
    */
@@ -413,7 +428,7 @@ export interface T_value_transformer<From = any, To = any> {
 }
 
 export interface T_migration_module {
-  forward(database: Database): Promise<void>
+  forward(database: T_database): Promise<void>
 
-  backward(database: Database): Promise<void>
+  backward(database: T_database): Promise<void>
 }

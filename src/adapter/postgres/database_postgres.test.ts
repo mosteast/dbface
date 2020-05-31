@@ -15,7 +15,7 @@ const conf: T_config_database_postgres = {
   port: +e.postgres_port!,
   user: e.postgres_user,
   password: e.postgres_password,
-  log: { log_params: true },
+  log: /*{ log_params: true }*/ false,
   migration: {
     file_dir: resolve(__dirname, 'test_asset/migration'),
   },
@@ -30,6 +30,11 @@ beforeEach(async () => {
   await con.database_ensure('a');
   db = new Database_postgres(conf);
   await db.connect();
+  await db.state_reset();
+});
+
+afterEach(async () => {
+  await db.table_drop_all();
 });
 
 it('table_pick/table_drop', async () => {
@@ -51,6 +56,7 @@ it('table_list', async () => {
 });
 
 it('table_list/table_count', async () => {
+  await db.table_drop_all();
   const tbs = [ 'a', 'b', 'c' ];
   for (const it of tbs) { await db.table_create_test(it); }
   const r = await db.table_list();
@@ -82,7 +88,18 @@ it('migration_list_all/migration_list_all_ids', async () => {
   for (const it of files) { expect(ids.includes(+it.split('.')[0])).toBeTruthy(); }
 });
 
+it('migration_get_files', async () => {
+  const files = await readdir(db.get_config().migration?.file_dir!);
+  const set = [ 1, 2 ];
+  const r = await db.migration_get_files(set);
+  expect(r.length).toBe(set.length);
+  for (const it of r) {
+    expect(files.includes(it));
+  }
+});
+
 it('state_init', async () => {
+  await db.table_drop_all();
   const name = db.get_config().state!.table_name!;
   expect(await db.table_pick(name)).toBeFalsy();
   await db.state_init();
@@ -98,4 +115,14 @@ it('state_get', async () => {
   expect(await db.state_get(key)).toBeFalsy();
   await db.state_set(key, 1);
   expect(await db.state_get(key)).toBe(1);
+});
+
+it('migration_run', async () => {
+  await db.state_reset();
+  const tbs = [ 'a', 'b' ];
+  for (const it of tbs) { expect(await db.table_pick(it)).toBeFalsy(); }
+  await db.migration_run();
+  for (const it of tbs) { expect(await db.table_pick(it)).toBeTruthy(); }
+  const r = await db.table_pick('a');
+  expect(r?.fields!.a1).toBeTruthy();
 });

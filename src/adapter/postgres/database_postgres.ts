@@ -1,10 +1,15 @@
-import { readdir, readFile } from 'fs-extra';
+import { print_info, print_success } from '@mosteast/print_helper';
+import { readdir } from 'fs-extra';
+import { keyBy, merge, range } from 'lodash';
 import { resolve } from 'path';
 import { pwd } from 'shelljs';
+import { Invalid_argument } from '../../error/invalid_argument';
 import { Invalid_connection_config } from '../../error/invalid_connection_config';
 import { Invalid_state } from '../../error/invalid_state';
 import { N_db_type } from '../../rds/connection';
-import { T_config_database, T_database, T_field, T_table } from '../../rds/database';
+import { T_config_database, T_database, T_field, T_migration_module, T_table } from '../../rds/database';
+import { last_migration_ } from '../../type';
+import { key_replace } from '../../util/obj';
 import { Connection_postgres, T_config_connection_postgres } from './connection_postgres';
 
 const e = require('pg-escape');
@@ -21,8 +26,7 @@ export class Database_postgres extends Connection_postgres implements T_database
   /**
    * Default configuration as a base to merge
    */
-  static def: T_config_connection_postgres = {
-    ...Connection_postgres.def,
+  static def: T_config_connection_postgres = merge(Connection_postgres.def, {
     migration: {
       file_dir: resolve(pwd().toString(), 'migration'),
       migration_file_suffix: '.m',
@@ -31,19 +35,26 @@ export class Database_postgres extends Connection_postgres implements T_database
       table_name: 'dbface_state',
       ensure_database: true,
     },
-  };
-  // static def: T_config_database = merge(Connection.def, { system: { ensure_database: true } })
+  });
+
   config!: T_config_database_postgres;
+
+  static adapt_field(field_like: T_field | any): T_field {
+    const f: T_field | any = key_replace(field_like, { field: 'name', null: 'nullable' });
+    f.nullable = f.nullable === 'yes' ? true : false;
+    return f;
+  }
 
   validate_config() {
     super.validate_config();
     if ( ! this.config.database) { throw new Invalid_connection_config('Required configs: {database}'); }
+    if ( ! this.config.migration?.file_dir) { throw new Invalid_connection_config('Required configs: {migration.file_dir}'); }
     if ( ! this.config.state?.table_name) { throw new Invalid_connection_config('Required configs: {state.table_name}'); }
   }
 
   async state_get<T = any>(key: string): Promise<T | undefined> {
     const name = this.get_config().state!.table_name;
-    const r = await this.query(`select * from "${name}"`);
+    const r = await this.query(`select * from "${name}" where "key" = $1`, [ key ]);
     const row = r.rows[0];
     if (row) {
       return row.value;
@@ -52,7 +63,7 @@ export class Database_postgres extends Connection_postgres implements T_database
 
   async state_set(key: string, value: any): Promise<void> {
     const name = this.get_config().state!.table_name;
-    await this.query(`insert into "${name}" ("key", "value") values ($1, $2)`, [ key, value ]);
+    await this.query(`insert into "${name}" ("key", "value") values ($1, $2) on conflict ("key") do update set "value" = $2`, [ key, value ]);
   }
 
   async state_unset(key: string): Promise<void> {
@@ -83,7 +94,7 @@ export class Database_postgres extends Connection_postgres implements T_database
     await this.query(`
       create table if not exists "${name}" (
         "key" varchar(64) primary key ,
-        "value" jsonb)`.trim());
+        "value" jsonb)`);
   }
 
   async state_drop_table(): Promise<void> {
@@ -135,7 +146,7 @@ export class Database_postgres extends Connection_postgres implements T_database
             and n.nspname !~ '^pg_toast'
             and pg_catalog.pg_table_is_visible(c.oid)
             and c.relname = $1
-      order by 1,2;`.trim(), [ name ]);
+      order by 1,2;`, [ name ]);
 
     const row = def.rows[0];
 
@@ -144,27 +155,27 @@ export class Database_postgres extends Connection_postgres implements T_database
     }
 
     const q_fields = await this.query<T_field[]>(`
-      SELECT a.attname                                             AS field,
-             t.typname || '(' || a.atttypmod || ')'                AS type,
-             CASE WHEN a.attnotnull = 't' THEN 'YES' ELSE 'NO' END AS null,
-             CASE WHEN r.contype = 'p' THEN 'PRI' ELSE '' END      AS key,
-             (SELECT substring(pg_catalog.pg_get_expr(d.adbin, d.adrelid), '(.*)')
-                FROM pg_catalog.pg_attrdef d
-                WHERE d.adrelid = a.attrelid
-                  AND d.adnum = a.attnum
-                  AND a.atthasdef)                                 AS default,
+      select a.attname                                             as field,
+             t.typname || '(' || a.atttypmod || ')'                as type,
+             case when a.attnotnull = 't' then 'yes' else 'no' end as null,
+             case when r.contype = 'p' then 'pri' else '' end      as key,
+             (select substring(pg_catalog.pg_get_expr(d.adbin, d.adrelid), '(.*)')
+                from pg_catalog.pg_attrdef d
+                where d.adrelid = a.attrelid
+                  and d.adnum = a.attnum
+                  and a.atthasdef)                                 as default,
              ''                                                    as extras
-        FROM pg_class c
-               JOIN pg_attribute a ON a.attrelid = c.oid
-               JOIN pg_type t ON a.atttypid = t.oid
-               LEFT JOIN pg_catalog.pg_constraint r ON c.oid = r.conrelid
-          AND r.conname = a.attname
-        WHERE c.relname = $1
-          AND a.attnum > 0
+        from pg_class c
+               join pg_attribute a on a.attrelid = c.oid
+               join pg_type t on a.atttypid = t.oid
+               left join pg_catalog.pg_constraint r on c.oid = r.conrelid
+          and r.conname = a.attname
+        where c.relname = $1
+          and a.attnum > 0
       
-        ORDER BY a.attnum`.trim(), [ name ]);
+        order by a.attnum`, [ name ]);
 
-    row.fields = q_fields.rows;
+    row.fields = keyBy(q_fields.rows.map(Database_postgres.adapt_field), 'name');
     return row;
   }
 
@@ -226,59 +237,6 @@ export class Database_postgres extends Connection_postgres implements T_database
     }
   }
 
-  // /**
-  //  * Drop migration table
-  //  */
-  // async table_drop_migration(): Promise<void> {
-  //   const name = this.get_config().migration?.table_name as string;
-  //   await this.query(`drop table if exists "${name}"`);
-  // }
-  //
-  // /**
-  //  * Truncate migration table
-  //  */
-  // async table_clear_migration(): Promise<void> {
-  //   const name = this.get_config().migration?.table_name as string;
-  //   await this.query(`truncate "${name}"`);
-  // }
-  //
-  // /**
-  //  * Create migration table if not exists
-  //  */
-  // async table_ensure_migration(): Promise<void> {
-  //   const name = this.get_config().migration?.table_name as string;
-  //   await this.query(`
-  //          create table if not exists "${name}" (
-  //             id varchar (50) unique not null,
-  //             step integer not null
-  //          )`);
-  // }
-
-  // /**
-  //  * List all migrated records
-  //  */
-  // async migration_list_migrated(): Promise<number[]> {
-  //   const table = this.get_config().migration?.table_name;
-  //   const { rows } = await this.query(`select * from "${table}"`);
-  //   return rows.map(it => it.step);
-  // }
-
-  /**
-   * List all not migrated files
-   */
-  // async migration_list_pending(): Promise<number[]> {
-  //   const db = await this.migration_list_migrated();
-  //   const files = await this.migration_list_all();
-  //   for (const [ i, it ] of files.entries()) {
-  //     if (db.includes(it)) {
-  //       continue;
-  //     }
-  //
-  //     return files.slice(i, files.length);
-  //   }
-  //   return [];
-  // }
-
   async migration_list_all(): Promise<string[]> {
     const dir: string = this.get_config().migration?.file_dir as string;
     const suffix = this.get_config().migration?.migration_file_suffix;
@@ -295,26 +253,86 @@ export class Database_postgres extends Connection_postgres implements T_database
   /**
    * Run migration
    */
-  async migration_run(step: number = 0) {
-    // const diff = await this.migration_list_pending();
-    // if ( ! step) { step = diff.length; }
-    //
-    // for (let i = 0; i < step; i++) {
-    //   if (step - i < 1) { return; }
-    //   const path = resolve(this.get_config().migration?.file_dir as string, diff[i].toString());
-    //   const modu = require(path);
-    //   await modu.forward();
-    // }
+  async migration_run(step?: number): Promise<void>
+  async migration_run(opt?: IN_migration_run): Promise<void>
+  async migration_run(a?: any): Promise<void> {
+    let opt: IN_migration_run = { step: 0 };
+
+    if (a) {
+      switch (typeof a) {
+        case 'number':
+          opt = { step: a };
+          break;
+        case 'object':
+          opt = { ...opt, ...a };
+          break;
+        default:
+          throw new Invalid_argument(`Invalid migration options: ${JSON.stringify(a)}`);
+      }
+    }
+
+    let { step } = opt;
+
+    const dir = this.get_config().migration?.file_dir!;
+    let last_id = await this.state_get(last_migration_) ?? 0;
+    const all = await this.migration_list_all_ids();
+    const all_len = all.length;
+    let ids, names;
+
+    if (Math.abs(step as number) > all_len) {
+      throw new Invalid_argument(`Invalid {step}, migration files count: ${all_len}`);
+    }
+
+    if (step == 0) {
+      ids = all.filter(it => it > last_id);
+      names = await this.migration_get_files(ids);
+    } else {
+      ids = range(last_id + 1, last_id + step + 1);
+      names = await this.migration_get_files(ids);
+    }
+
+    print_info('Running migrations:');
+    for (const it of names) {
+      print_info('● ', it, '...');
+      const module: T_migration_module = await import(resolve(dir, it));
+      if ( ! module.forward || ! module.backward) {
+        throw new Invalid_state('A migration module (file) should contains these methods: `forward()`, `backward()`. You can define them in a plain object and `module.exports` it.');
+      }
+
+      if (step as number >= 0) {
+        await module.forward(this);
+        last_id++;
+      } else {
+        await module.backward(this);
+        last_id--;
+      }
+
+      await this.state_set(last_migration_, last_id);
+      print_success('  Done.');
+    }
   }
 
   migration_last(): Promise<number> {
     throw new Error('Method not implemented.');
   }
 
-  /**
-   * Read migration file by name (only file name)
-   */
-  async migration_file_read(file_name: string): Promise<Buffer> {
-    return readFile(resolve(this.get_config().migration?.file_dir as string, file_name));
+  async migration_get_files(ids: number[]): Promise<string[]> {
+    const r: string[] = [];
+    const files = await this.migration_list_all();
+
+    for (const it of files) {
+      const id = +it.split('.')[0];
+      if (ids.includes(id)) {
+        r.push(it);
+      }
+    }
+
+    if (r.length !== ids.length) {
+      throw new Invalid_argument({ ids });
+    }
+
+    return r;
   }
 }
+
+export interface IN_migration_run {step?: number}
