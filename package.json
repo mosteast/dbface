@@ -1,9 +1,9 @@
 {
-  "name": "ormx",
-  "description": "ormx",
-  "version": "0.0.3",
-  "homepage": "https://github.com/mosteast/ormx#readme",
-  "repository": "github:mosteast/ormx",
+  "name": "dbface",
+  "description": "dbface",
+  "version": "0.0.2",
+  "homepage": "https://github.com/mosteast/dbface#readme",
+  "repository": "github:mosteast/dbface",
   "main": "build/index.js",
   "type": "build/index.d.ts",
   "files": [

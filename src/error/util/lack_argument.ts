@@ -1,33 +1,34 @@
-import { keys } from 'lodash'
-import { Invalid_argument } from '../invalid_argument'
+import { keys } from 'lodash';
+import { T_object } from '../../type';
+import { Invalid_argument } from '../invalid_argument';
 
-export function require_all(args: object) {
-  const lack = []
+export function require_all(args: T_object) {
+  const lack = [];
 
   for (const key in args) {
-    const value = args[key]
+    const value = args[key];
     if (value === undefined) {
-      lack.push(key)
+      lack.push(key);
     }
   }
 
   if (lack.length) {
-    throw new Invalid_argument(`Required: {${lack.join('&')}}`)
+    throw new Invalid_argument(`Required: {${lack.join('&')}}`);
   }
 }
 
-export function require_any(args: object) {
-  let valid = false
+export function require_any(args: T_object) {
+  let valid = false;
 
   for (const key in args) {
-    const value = args[key]
+    const value = args[key];
     if (value !== undefined) {
-      valid = true
-      break
+      valid = true;
+      break;
     }
   }
 
   if ( ! valid) {
-    throw new Invalid_argument(`Required: {${keys(args).join('|')}}`)
+    throw new Invalid_argument(`Required: {${keys(args).join('|')}}`);
   }
 }

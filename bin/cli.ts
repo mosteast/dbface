@@ -1,16 +1,15 @@
 #!/usr/bin/env ts-node
 
-import * as yargs from 'yargs'
-import { Argv } from 'yargs'
-import { run, I_migration_go } from '../src/migration/migration'
+import * as yargs from 'yargs';
+import { Argv } from 'yargs';
 
 yargs
   .command({
     command: '$0',
-    describe: 'CLI for ormx - use `xxx --help` to see sub-command help info',
+    describe: 'CLI for dbface - use `xxx --help` to see sub-command help info',
     builder,
     handler() {},
-  }).argv
+  }).argv;
 
 function builder(argv: Argv): Argv {
   return argv
@@ -27,22 +26,22 @@ function builder(argv: Argv): Argv {
       describe: 'Database migration commands',
       builder(argv) {
         return argv
-          .command({
-            command: 'go <step>',
-            aliases: [ 'g' ],
-            describe: 'How many migration files to run, `go 1`: migrate 1 file forward, `go -2` migrate 2 files backward',
-            builder<I_migration_go>(argv) {
-              return argv
-                .options({
-                  step: {
-                    type: 'number',
-                    desc: 'How many steps to forward, default is 0: unlimited to latest migration',
-                    default: 0,
-                  },
-                })
-            },
-            handler: run,
-          })
+          // .command({
+          //   command: 'go <step>',
+          //   aliases: [ 'g' ],
+          //   describe: 'How many migration files to run, `go 1`: migrate 1 file forward, `go -2` migrate 2 files backward',
+          //   builder<I_migration_go>(argv: any) {
+          //     return argv
+          //       .options({
+          //         step: {
+          //           type: 'number',
+          //           desc: 'How many steps to forward, default is 0: unlimited to latest migration',
+          //           default: 0,
+          //         },
+          //       });
+          //   },
+          //   handler: run,
+          // })
           .command({
             command: 'forward',
             aliases: [ 'f' ],
@@ -55,12 +54,12 @@ function builder(argv: Argv): Argv {
                     desc: 'How many steps to forward, default is 0: unlimited to latest migration',
                     default: 0,
                   },
-                })
+                });
             },
             handler() {},
-          })
+          });
       },
       handler() {},
     })
-    .demandCommand()
+    .demandCommand();
 }

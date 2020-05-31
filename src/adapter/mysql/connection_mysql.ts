@@ -20,11 +20,11 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
    */
   static def: T_config_connection_mysql = {
     dialect: N_db_type.mysql,
-    host: env.ormx_type,
-    port: +env.ormx_port!,
-    user: env.ormx_user,
-    password: env.ormx_password,
-    uri: env.ormx_uri,
+    host: env.dbface_type,
+    port: +env.dbface_port!,
+    user: env.dbface_user,
+    password: env.dbface_password,
+    uri: env.dbface_uri,
     migration: {
       table_name: table_migration,
       file_dir: resolve(pwd().toString(), 'database/migration'),
