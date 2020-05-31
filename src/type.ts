@@ -13,7 +13,7 @@ export enum E_level {
   external = 'external',
 }
 
-export const last_migration_ = 'last_migration';
+export const migration_log_ = 'migration_log';
 export const table_state = 'dbface_system';
 
 /**

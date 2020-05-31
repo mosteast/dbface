@@ -1,6 +1,6 @@
 import { print_info, print_success } from '@mosteast/print_helper';
 import { readdir } from 'fs-extra';
-import { keyBy, merge, range } from 'lodash';
+import { keyBy, merge } from 'lodash';
 import { resolve } from 'path';
 import { pwd } from 'shelljs';
 import { Invalid_argument } from '../../error/invalid_argument';
@@ -8,7 +8,7 @@ import { Invalid_connection_config } from '../../error/invalid_connection_config
 import { Invalid_state } from '../../error/invalid_state';
 import { N_db_type } from '../../rds/connection';
 import { T_config_database, T_database, T_field, T_migration_module, T_table } from '../../rds/database';
-import { last_migration_ } from '../../type';
+import { migration_log_ } from '../../type';
 import { key_replace } from '../../util/obj';
 import { Connection_postgres, T_config_connection_postgres } from './connection_postgres';
 
@@ -63,7 +63,7 @@ export class Database_postgres extends Connection_postgres implements T_database
 
   async state_set(key: string, value: any): Promise<void> {
     const name = this.get_config().state!.table_name;
-    await this.query(`insert into "${name}" ("key", "value") values ($1, $2) on conflict ("key") do update set "value" = $2`, [ key, value ]);
+    await this.query(`insert into "${name}" ("key", "value") values ($1, $2) on conflict ("key") do update set "value" = $2`, [ key, JSON.stringify(value) ]);
   }
 
   async state_unset(key: string): Promise<void> {
@@ -247,7 +247,7 @@ export class Database_postgres extends Connection_postgres implements T_database
 
   async migration_list_all_ids(): Promise<number[]> {
     const r = await this.migration_list_all();
-    return r.map(it => +it.split('.')[0]);
+    return r.map(it => +it.split('.')[0]).sort();
   }
 
   /**
@@ -274,40 +274,48 @@ export class Database_postgres extends Connection_postgres implements T_database
     let { step } = opt;
 
     const dir = this.get_config().migration?.file_dir!;
-    let last_id = await this.state_get(last_migration_) ?? 0;
+    let log: number[] = await this.state_get(migration_log_) ?? [];
     const all = await this.migration_list_all_ids();
     const all_len = all.length;
     let ids, names;
 
-    if (Math.abs(step as number) > all_len) {
+    if (Math.abs(step!) > all_len) {
       throw new Invalid_argument(`Invalid {step}, migration files count: ${all_len}`);
     }
 
+    const pending = all.filter(it => ! log.includes(it)).sort();
+
     if (step == 0) {
-      ids = all.filter(it => it > last_id);
+      ids = pending;
       names = await this.migration_get_files(ids);
     } else {
-      ids = range(last_id + 1, last_id + step + 1);
+      if (step! > 0) {
+        ids = pending.slice(0, step);
+      } else {
+        ids = log.slice((log.length + step!), log.length);
+        console.log(ids);
+      }
       names = await this.migration_get_files(ids);
     }
 
     print_info('Running migrations:');
-    for (const it of names) {
-      print_info('● ', it, '...');
-      const module: T_migration_module = await import(resolve(dir, it));
+    for (const [ i, it ] of ids.entries()) {
+      const name = names[i];
+      print_info('● ', name, '...');
+      const module: T_migration_module = await import(resolve(dir, name));
       if ( ! module.forward || ! module.backward) {
         throw new Invalid_state('A migration module (file) should contains these methods: `forward()`, `backward()`. You can define them in a plain object and `module.exports` it.');
       }
 
-      if (step as number >= 0) {
+      if (step! >= 0) {
         await module.forward(this);
-        last_id++;
+        log.push(it);
       } else {
         await module.backward(this);
-        last_id--;
+        log.pop();
       }
 
-      await this.state_set(last_migration_, last_id);
+      await this.state_set(migration_log_, log);
       print_success('  Done.');
     }
   }
@@ -335,4 +343,6 @@ export class Database_postgres extends Connection_postgres implements T_database
   }
 }
 
-export interface IN_migration_run {step?: number}
+export interface IN_migration_run {
+  step?: number
+}

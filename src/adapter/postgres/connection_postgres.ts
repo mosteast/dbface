@@ -55,26 +55,7 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
   }
 
   set_config(config: T_config_connection): void {
-    // @ts-ignore
-    const c: T_config_connection = this.config = merge((this.constructor).def, config);
-
-    if (c.log) {
-      switch (typeof c.log) {
-        case 'function':
-          c.log = { logger: c.log };
-          break;
-        case 'boolean':
-          c.log = {};
-          break;
-      }
-
-      if ( ! c.log?.logger) {
-        c.log.logger = (...args: any) => console.info('●', ...args);
-      }
-    } else {
-      c.log = false;
-    }
-
+    const c: T_config_connection = this.config = merge((this.constructor as typeof Connection_postgres).def, config);
     this.adapt_config();
   }
 
@@ -140,10 +121,11 @@ limit 1`, [ name ]);
   }
 
   async query<T = any, T_params = any>(opt: IN_query<T_params>): Promise<T_result<T>>;
-  async query<T = any, T_params = any>(sql: string, params?: T_params): Promise<T_result<T>>;
-  async query<T = any, T_params = any>(a: any, b?: any) {
+  async query<T = any, T_params = any>(sql: string, params?: T_params, opt?: IN_query<T_params>): Promise<T_result<T>>;
+  async query<T = any, T_params = any>(a: any, b?: any, c?: any) {
     let opt: IN_query = {};
     if (typeof a === 'string') {
+      opt = merge(opt, c);
       opt.sql = a;
       opt.params = b;
     } else {
@@ -155,15 +137,28 @@ limit 1`, [ name ]);
     return key_replace<T_result<T>>(r, { rowCount: 'count' });
   }
 
-  log({ sql, params }: IN_query) {
-    const log: T_opt_log = this.config.log as T_opt_log;
+  log({ sql, params, log }: IN_query) {
+    log = log || this.config.log as T_opt_log;
     if (log) {
+      switch (typeof log) {
+        case 'function':
+          log = { logger: log };
+          break;
+        default:
+          log = {};
+          break;
+      }
+
+      if ( ! log?.logger) {
+        log.logger = (...args: any) => console.info('●', ...args);
+      }
+
       let param_part = '';
       if (log.log_params && params) {
         param_part = '-- ' + JSON.stringify(params);
       }
 
-      log.logger!(sql?.trim(), param_part);
+      log.logger(sql?.trim(), param_part);
     }
   }
 }

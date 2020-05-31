@@ -15,7 +15,8 @@ const conf: T_config_database_postgres = {
   port: +e.postgres_port!,
   user: e.postgres_user,
   password: e.postgres_password,
-  log: /*{ log_params: true }*/ false,
+  // log: { log_params: true },
+  log: false,
   migration: {
     file_dir: resolve(__dirname, 'test_asset/migration'),
   },
@@ -121,8 +122,14 @@ it('migration_run', async () => {
   await db.state_reset();
   const tbs = [ 'a', 'b' ];
   for (const it of tbs) { expect(await db.table_pick(it)).toBeFalsy(); }
+  // Forward
   await db.migration_run();
   for (const it of tbs) { expect(await db.table_pick(it)).toBeTruthy(); }
   const r = await db.table_pick('a');
   expect(r?.fields!.a1).toBeTruthy();
+
+  // Backward
+  await db.migration_run(-1);
+  expect(r?.fields!.a1).toBeFalsy();
+
 });
