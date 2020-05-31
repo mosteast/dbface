@@ -2,10 +2,8 @@ import * as events from 'events';
 import { cloneDeep, merge } from 'lodash';
 import { QueryOptions } from 'mysql2';
 import { createPool, Pool, PoolOptions } from 'mysql2/promise';
-import { resolve } from 'path';
-import { pwd } from 'shelljs';
 import { IN_query, N_db_type, T_config_connection, T_connection, T_opt_log, T_result } from '../../rds/connection';
-import { T_row_database, table_migration, table_system } from '../../type';
+import { T_row_database } from '../../type';
 import { key_replace } from '../../util/obj';
 
 export interface T_config_connection_mysql extends T_config_connection {
@@ -25,15 +23,6 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
     user: env.dbface_user,
     password: env.dbface_password,
     uri: env.dbface_uri,
-    migration: {
-      table_name: table_migration,
-      file_dir: resolve(pwd().toString(), 'database/migration'),
-      migration_file_suffix: '.m',
-    },
-    system: {
-      table_name: table_system,
-      ensure_database: true,
-    },
   };
 
   pool!: Pool;

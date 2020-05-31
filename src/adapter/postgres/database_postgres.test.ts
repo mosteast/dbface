@@ -1,6 +1,10 @@
+import { readdir } from 'fs-extra';
+import { resolve } from 'path';
 import { N_db_type } from '../../rds/connection';
 import { Connection_postgres } from './connection_postgres';
 import { Database_postgres, T_config_database_postgres } from './database_postgres';
+
+jest.setTimeout(150000);
 
 const e = process.env;
 
@@ -12,6 +16,9 @@ const conf: T_config_database_postgres = {
   user: e.postgres_user,
   password: e.postgres_password,
   log: { log_params: true },
+  migration: {
+    file_dir: resolve(__dirname, 'test_asset/migration'),
+  },
 };
 
 let con: Connection_postgres;
@@ -36,6 +43,7 @@ it('table_pick/table_drop', async () => {
 
 it('table_list', async () => {
   const tbs = [ 'a', 'b', 'c' ];
+  await db.table_drop_all();
   for (const it of tbs) { await db.table_create_test(it); }
   const r = await db.table_list_names();
   expect(r?.length).toBe(3);
@@ -66,10 +74,28 @@ it('table_pick', async () => {
   await db.table_drop('a');
 });
 
-it('table_ensure_migration/table_drop_migration', async () => {
-  const name = db.get_config().migration?.table_name as string;
-  await db.table_ensure_migration();
-  expect(await db.table_pick(name)).toBeTruthy();
-  await db.table_drop_migration();
+it('migration_list_all/migration_list_all_ids', async () => {
+  const names = await db.migration_list_all();
+  const ids = await db.migration_list_all_ids();
+  const files = await readdir(db.get_config().migration?.file_dir!);
+  for (const it of files) { expect(names.includes(it)).toBeTruthy(); }
+  for (const it of files) { expect(ids.includes(+it.split('.')[0])).toBeTruthy(); }
+});
+
+it('state_init', async () => {
+  const name = db.get_config().state!.table_name!;
   expect(await db.table_pick(name)).toBeFalsy();
+  await db.state_init();
+  expect(await db.table_pick(name)).toBeTruthy();
+  await db.state_drop_table();
+  expect(await db.table_pick(name)).toBeFalsy();
+});
+
+it('state_get', async () => {
+  await db.state_reset();
+  const key = 'a';
+  await db.state_unset(key);
+  expect(await db.state_get(key)).toBeFalsy();
+  await db.state_set(key, 1);
+  expect(await db.state_get(key)).toBe(1);
 });

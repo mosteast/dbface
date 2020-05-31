@@ -1,10 +1,11 @@
 import { readdir, readFile } from 'fs-extra';
 import { resolve } from 'path';
+import { pwd } from 'shelljs';
 import { Invalid_connection_config } from '../../error/invalid_connection_config';
 import { Invalid_state } from '../../error/invalid_state';
 import { N_db_type } from '../../rds/connection';
 import { T_config_database, T_database, T_field, T_table } from '../../rds/database';
-import { Connection_postgres } from './connection_postgres';
+import { Connection_postgres, T_config_connection_postgres } from './connection_postgres';
 
 const e = require('pg-escape');
 
@@ -16,12 +17,78 @@ export interface T_config_database_postgres extends T_config_database {
  * Connection with selected database
  */
 export class Database_postgres extends Connection_postgres implements T_database {
+
+  /**
+   * Default configuration as a base to merge
+   */
+  static def: T_config_connection_postgres = {
+    ...Connection_postgres.def,
+    migration: {
+      file_dir: resolve(pwd().toString(), 'migration'),
+      migration_file_suffix: '.m',
+    },
+    state: {
+      table_name: 'dbface_state',
+      ensure_database: true,
+    },
+  };
   // static def: T_config_database = merge(Connection.def, { system: { ensure_database: true } })
   config!: T_config_database_postgres;
 
   validate_config() {
     super.validate_config();
     if ( ! this.config.database) { throw new Invalid_connection_config('Required configs: {database}'); }
+    if ( ! this.config.state?.table_name) { throw new Invalid_connection_config('Required configs: {state.table_name}'); }
+  }
+
+  async state_get<T = any>(key: string): Promise<T | undefined> {
+    const name = this.get_config().state!.table_name;
+    const r = await this.query(`select * from "${name}"`);
+    const row = r.rows[0];
+    if (row) {
+      return row.value;
+    }
+  }
+
+  async state_set(key: string, value: any): Promise<void> {
+    const name = this.get_config().state!.table_name;
+    await this.query(`insert into "${name}" ("key", "value") values ($1, $2)`, [ key, value ]);
+  }
+
+  async state_unset(key: string): Promise<void> {
+    const name = this.get_config().state!.table_name;
+    await this.query(`delete from "${name}" where "key" = $1`, [ key ]);
+  }
+
+  /**
+   * Creating necessary system data
+   */
+  async state_init(): Promise<void> {
+    const c = this.config;
+    if ( ! c.migration) { return; }
+    await this.state_ensure_table();
+  }
+
+  async state_destroy(): Promise<void> {
+    await this.state_drop_table();
+  }
+
+  async state_reset(): Promise<void> {
+    await this.state_destroy();
+    await this.state_init();
+  }
+
+  async state_ensure_table(): Promise<void> {
+    const name = this.get_config().state!.table_name;
+    await this.query(`
+      create table if not exists "${name}" (
+        "key" varchar(64) primary key ,
+        "value" jsonb)`.trim());
+  }
+
+  async state_drop_table(): Promise<void> {
+    const name = this.get_config().state!.table_name!;
+    await this.table_drop(name);
   }
 
   /**
@@ -159,91 +226,89 @@ export class Database_postgres extends Connection_postgres implements T_database
     }
   }
 
-  /**
-   * Drop migration table
-   */
-  async table_drop_migration(): Promise<void> {
-    const name = this.get_config().migration?.table_name as string;
-    await this.query(`drop table if exists "${name}"`);
-  }
+  // /**
+  //  * Drop migration table
+  //  */
+  // async table_drop_migration(): Promise<void> {
+  //   const name = this.get_config().migration?.table_name as string;
+  //   await this.query(`drop table if exists "${name}"`);
+  // }
+  //
+  // /**
+  //  * Truncate migration table
+  //  */
+  // async table_clear_migration(): Promise<void> {
+  //   const name = this.get_config().migration?.table_name as string;
+  //   await this.query(`truncate "${name}"`);
+  // }
+  //
+  // /**
+  //  * Create migration table if not exists
+  //  */
+  // async table_ensure_migration(): Promise<void> {
+  //   const name = this.get_config().migration?.table_name as string;
+  //   await this.query(`
+  //          create table if not exists "${name}" (
+  //             id varchar (50) unique not null,
+  //             step integer not null
+  //          )`);
+  // }
 
-  /**
-   * Truncate migration table
-   */
-  async table_clear_migration(): Promise<void> {
-    const name = this.get_config().migration?.table_name as string;
-    await this.query(`truncate "${name}"`);
-  }
-
-  /**
-   * Create migration table if not exists
-   */
-  async table_ensure_migration(): Promise<void> {
-    const name = this.get_config().migration?.table_name as string;
-    await this.query(`
-           create table if not exists "${name}" (
-              id varchar (50) unique not null,
-              step integer not null
-           )`);
-  }
-
-  /**
-   * Creating necessary tables and datum for migration.
-   */
-  async migration_init_state(): Promise<void> {
-    const c = this.config;
-    if ( ! c.migration) { return; }
-    await this.table_ensure_migration();
-  }
-
-  /**
-   * List all migrated records
-   */
-  async migration_list_migrated() {
-    const table = this.get_config().migration?.table_name;
-    const { rows } = await this.query(`select * from ${table}`);
-
-    return rows;
-  }
+  // /**
+  //  * List all migrated records
+  //  */
+  // async migration_list_migrated(): Promise<number[]> {
+  //   const table = this.get_config().migration?.table_name;
+  //   const { rows } = await this.query(`select * from "${table}"`);
+  //   return rows.map(it => it.step);
+  // }
 
   /**
    * List all not migrated files
    */
-  async migration_list_pending(): Promise<string[]> {
-    const db = await this.migration_list_migrated();
-    const files = await this.migration_list_files();
-    for (const [ i, it ] of files.entries()) {
-      if (db.includes(it)) {
-        continue;
-      }
+  // async migration_list_pending(): Promise<number[]> {
+  //   const db = await this.migration_list_migrated();
+  //   const files = await this.migration_list_all();
+  //   for (const [ i, it ] of files.entries()) {
+  //     if (db.includes(it)) {
+  //       continue;
+  //     }
+  //
+  //     return files.slice(i, files.length);
+  //   }
+  //   return [];
+  // }
 
-      return files.slice(i, files.length);
-    }
-    return [];
-  }
-
-  async migration_list_files(): Promise<string[]> {
+  async migration_list_all(): Promise<string[]> {
     const dir: string = this.get_config().migration?.file_dir as string;
     const suffix = this.get_config().migration?.migration_file_suffix;
     const re = new RegExp(`.+${suffix}\.(?:js|ts)$`);
-    return (await readdir(dir)).filter(it => re.test(it));
+    const files = (await readdir(dir)).filter(it => re.test(it));
+    return files;
+  }
+
+  async migration_list_all_ids(): Promise<number[]> {
+    const r = await this.migration_list_all();
+    return r.map(it => +it.split('.')[0]);
   }
 
   /**
    * Run migration
    */
   async migration_run(step: number = 0) {
-    const diff = await this.migration_list_pending();
-    if ( ! step) { step = diff.length; }
+    // const diff = await this.migration_list_pending();
+    // if ( ! step) { step = diff.length; }
+    //
+    // for (let i = 0; i < step; i++) {
+    //   if (step - i < 1) { return; }
+    //   const path = resolve(this.get_config().migration?.file_dir as string, diff[i].toString());
+    //   const modu = require(path);
+    //   await modu.forward();
+    // }
+  }
 
-    let i = step;
-
-    for (let i = 0; i < step; i++) {
-      if (step - i < 1) { return; }
-      const path = resolve(this.get_config().migration?.file_dir as string, diff[i]);
-      const modu = require(path);
-      await modu.forward();
-    }
+  migration_last(): Promise<number> {
+    throw new Error('Method not implemented.');
   }
 
   /**

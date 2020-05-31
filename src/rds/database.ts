@@ -1,10 +1,10 @@
 import { Database_postgres } from '../adapter/postgres/database_postgres';
 import { Invalid_connection_config } from '../error/invalid_connection_config';
-import { Connection, T_config_connection, T_connection, T_system_config } from './connection';
+import { Connection, T_config_connection, T_connection, T_state_config } from './connection';
 
 export interface T_config_database extends T_config_connection {
   database: string
-  system?: T_system_config & { ensure_database?: boolean }
+  state?: T_state_config & { ensure_database?: boolean }
 }
 
 /**
@@ -58,35 +58,10 @@ export class Database extends Connection implements T_database {
   }
 
   /**
-   * Create migration table if not exists
-   */
-  async table_ensure_migration() {
-    await this.adapter.table_ensure_migration();
-  }
-
-  /**
    * Creating necessary tables and datum for migration.
    */
-  async migration_init_state() {
-    await this.adapter.migration_init_state();
-  }
-
-  /**
-   * List all migrated records
-   */
-  async migration_list_migrated() {
-    return this.adapter.migration_list_migrated();
-  }
-
-  /**
-   * List all not migrated files
-   */
-  async migration_list_pending(): Promise<string[]> {
-    return this.adapter.migration_list_pending();
-  }
-
-  async migration_list_files(): Promise<string[]> {
-    return this.adapter.migration_list_files();
+  async state_init() {
+    await this.adapter.state_init();
   }
 
   /**
@@ -97,22 +72,90 @@ export class Database extends Connection implements T_database {
   }
 
   /**
-   * Read migration file by name (only file name)
+   * Last migration id
    */
-  async migration_file_read(file_name: string): Promise<Buffer> {
-    return this.adapter.migration_file_read(file_name);
+  async migration_last(): Promise<number> {
+    return this.adapter.migration_last();
   }
 
-  async table_clear_migration(): Promise<void> {
-    await this.adapter.table_clear_migration();
+  state_get<T = any>(key: string): Promise<T | undefined> {
+    return this.adapter.state_get(key);
   }
 
-  async table_drop_migration(): Promise<void> {
-    await this.adapter.table_drop_migration();
+  state_set(key: string, value: any): Promise<void> {
+    return this.adapter.state_set(key, value);
+  }
+
+  state_unset(key: string): Promise<void> {
+    return this.adapter.state_unset(key);
+  }
+
+  state_ensure_table(): Promise<void> {
+    return this.adapter.state_ensure_table();
+  }
+
+  migration_list_all(): Promise<string[]> {
+    return this.adapter.migration_list_all();
+  }
+
+  migration_list_all_ids(): Promise<number[]> {
+    return this.adapter.migration_list_all_ids();
+  }
+
+  state_drop_table(): Promise<void> {
+    return this.adapter.state_drop_table();
+  }
+
+  state_destroy(): Promise<void> {
+    return this.adapter.state_destroy();
+  }
+
+  state_reset(): Promise<void> {
+    return this.adapter.state_reset();
   }
 }
 
 export interface T_database extends T_connection {
+  /**
+   * Create necessary system table and data
+   */
+  state_init(): Promise<void>
+
+  /**
+   * Delete system table and data
+   */
+  state_destroy(): Promise<void>
+
+  /**
+   * Reset system table and data
+   */
+  state_reset(): Promise<void>
+
+  /**
+   * Ensure system state table's existence
+   */
+  state_ensure_table(): Promise<void>
+
+  /**
+   * Drop system state table
+   */
+  state_drop_table(): Promise<void>
+
+  /**
+   * Set system state item
+   */
+  state_set(key: string, value: any): Promise<void>
+
+  /**
+   * Remove a system state item
+   */
+  state_unset(key: string): Promise<void>
+
+  /**
+   * Get system state item
+   */
+  state_get<T = any>(key: string): Promise<T | undefined>
+
   /**
    * Count table number
    */
@@ -130,11 +173,6 @@ export interface T_database extends T_connection {
   table_drop_all(): Promise<void>
 
   /**
-   * Create migration table if not exists
-   */
-  table_ensure_migration(): Promise<void>
-
-  /**
    * Get all tables' info
    */
   table_list(): Promise<T_table[]>
@@ -146,44 +184,24 @@ export interface T_database extends T_connection {
   table_pick(name: string): Promise<T_table | null>
 
   /**
-   * Drop migration table
-   */
-  table_drop_migration(): Promise<void>
-
-  /**
-   * Truncate migration table
-   */
-  table_clear_migration(): Promise<void>
-
-  /**
    * Creating necessary tables and datum for migration.
    */
-  migration_init_state(): Promise<void>
-
-  /**
-   * Read migration file by name (only file name)
-   */
-  migration_file_read(file_name: string): Promise<Buffer>
-
-  /**
-   * List all migration files (both migrated and not migrated)
-   */
-  migration_list_files(): Promise<string[]>
-
-  /**
-   * List all migrated records
-   */
-  migration_list_migrated(): Promise<any[]>
-
-  /**
-   * List all not migrated files
-   */
-  migration_list_pending(): Promise<any[]>
+  migration_last(): Promise<number>
 
   /**
    * Run migration
    */
   migration_run(step?: number): Promise<void>
+
+  /**
+   * List all migration file names
+   */
+  migration_list_all(): Promise<string[]>
+
+  /**
+   * List all migration ids (files' numeric prefix)
+   */
+  migration_list_all_ids(): Promise<number[]>
 }
 
 export interface T_table {

@@ -7,7 +7,7 @@ import { pwd } from 'shelljs';
 import { Connection_mysql } from '../adapter/mysql/connection_mysql';
 import { Connection_postgres } from '../adapter/postgres/connection_postgres';
 import { Invalid_connection_config } from '../error/invalid_connection_config';
-import { T_row_database, table_migration, table_system } from '../type';
+import { T_row_database, table_state } from '../type';
 
 export enum N_db_type {mysql = 'mysql', postgres = 'postgres'}
 
@@ -28,12 +28,11 @@ export class Connection extends events.EventEmitter implements T_connection {
     password: env.dbface_password,
     uri: env.dbface_uri,
     migration: {
-      table_name: table_migration,
       file_dir: resolve(pwd().toString(), 'database/migration'),
       migration_file_suffix: '.m',
     },
     system: {
-      table_name: table_system,
+      table_name: table_state,
       ensure_database: true,
     },
   };
@@ -89,11 +88,10 @@ export class Connection extends events.EventEmitter implements T_connection {
   validate_config() {
     const c = this.adapter.config;
     if ( ! c) { throw new Invalid_connection_config('Empty config'); }
-    if ( ! c.system?.table_name) { throw new Invalid_connection_config('Required: `system.table_name`'); }
+    if ( ! c.state?.table_name) { throw new Invalid_connection_config('Required: `system.table_name`'); }
 
     const m = c.migration;
     if (m) {
-      if ( ! m.table_name) { throw new Invalid_connection_config('Required: `migration.table_name`'); }
       if ( ! m.file_dir) { throw new Invalid_connection_config('Required: `migration.file_dir`'); }
     }
 
@@ -161,12 +159,11 @@ export class Connection extends events.EventEmitter implements T_connection {
 export type T_raw_config = PoolConfig
 
 export interface T_migration_config {
-  table_name?: string
   file_dir?: string
   migration_file_suffix?: string
 }
 
-export interface T_system_config {
+export interface T_state_config {
   table_name?: string
   ensure_database?: boolean
 }
@@ -179,7 +176,7 @@ export interface T_config_connection {
   password?: string
   uri?: string
   migration?: T_migration_config
-  system?: T_system_config
+  state?: T_state_config
   log?: boolean | Function | T_opt_log
 }
 

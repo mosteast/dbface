@@ -1,10 +1,8 @@
 import * as events from 'events';
 import { cloneDeep, merge } from 'lodash';
-import { resolve } from 'path';
 import { Pool, PoolClient, PoolConfig, QueryConfig } from 'pg';
-import { pwd } from 'shelljs';
 import { IN_query, N_db_type, T_config_connection, T_connection, T_opt_log, T_result } from '../../rds/connection';
-import { T_row_database, table_migration, table_system } from '../../type';
+import { T_row_database } from '../../type';
 import { key_replace } from '../../util/obj';
 
 const e = require('pg-escape');
@@ -22,15 +20,6 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
     user: env.dbface_user,
     password: env.dbface_password,
     uri: env.dbface_uri,
-    migration: {
-      table_name: table_migration,
-      file_dir: resolve(pwd().toString(), 'database/migration'),
-      migration_file_suffix: '.m',
-    },
-    system: {
-      table_name: table_system,
-      ensure_database: true,
-    },
   };
 
   pool!: Pool;

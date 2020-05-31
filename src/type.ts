@@ -14,7 +14,7 @@ export enum E_level {
 }
 
 export const table_migration = 'dbface_migration';
-export const table_system = 'dbface_system';
+export const table_state = 'dbface_system';
 
 /**
  * Single database row returned from database after list database (like "show database")
