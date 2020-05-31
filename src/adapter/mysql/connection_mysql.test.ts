@@ -6,7 +6,7 @@ const e = process.env;
 const conf: T_config_connection_mysql = {
   dialect: N_db_type.mysql,
   host: e.mysql_host,
-  port: +e.mysql_port,
+  port: +e.mysql_port!,
   user: e.mysql_user,
   password: e.mysql_password,
   log: { log_params: true },

@@ -1,12 +1,14 @@
 import { N_db_type } from '../../rds/connection';
 import { Connection_postgres, T_config_connection_postgres } from './connection_postgres';
 
+jest.setTimeout(15000);
+
 const e = process.env;
 
 const conf: T_config_connection_postgres = {
   dialect: N_db_type.postgres,
   host: e.postgres_host,
-  port: +e.postgres_port,
+  port: +e.postgres_port!,
   user: e.postgres_user,
   password: e.postgres_password,
   log: { log_params: true },

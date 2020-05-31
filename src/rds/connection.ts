@@ -38,8 +38,8 @@ export class Connection extends events.EventEmitter implements T_connection {
     },
   };
 
-  adapter: Connection_mysql | Connection_postgres;
-  raw_config: T_raw_config;
+  adapter!: Connection_mysql | Connection_postgres;
+  raw_config!: T_raw_config;
 
   constructor(config?: T_config_connection) {
     super();
@@ -89,7 +89,7 @@ export class Connection extends events.EventEmitter implements T_connection {
   validate_config() {
     const c = this.adapter.config;
     if ( ! c) { throw new Invalid_connection_config('Empty config'); }
-    if ( ! c.system.table_name) { throw new Invalid_connection_config('Required: `system.table_name`'); }
+    if ( ! c.system?.table_name) { throw new Invalid_connection_config('Required: `system.table_name`'); }
 
     const m = c.migration;
     if (m) {
@@ -116,7 +116,7 @@ export class Connection extends events.EventEmitter implements T_connection {
 
   async query<T = any, T_params = any>(opt: IN_query): Promise<T_result<T>>
   async query<T = any, T_params = any>(sql: string, params: T_params): Promise<T_result<T>>
-  async query(a, b?) {
+  async query(a: any, b?: any) {
     return this.adapter.query(a, b);
   }
 

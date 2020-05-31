@@ -1,5 +1,6 @@
 import * as events from 'events';
 import { cloneDeep, merge } from 'lodash';
+import { QueryOptions } from 'mysql2';
 import { createPool, Pool, PoolOptions } from 'mysql2/promise';
 import { resolve } from 'path';
 import { pwd } from 'shelljs';
@@ -20,7 +21,7 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
   static def: T_config_connection_mysql = {
     dialect: N_db_type.mysql,
     host: env.ormx_type,
-    port: +env.ormx_port,
+    port: +env.ormx_port!,
     user: env.ormx_user,
     password: env.ormx_password,
     uri: env.ormx_uri,
@@ -35,9 +36,9 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
     },
   };
 
-  pool: Pool;
-  raw_config: PoolOptions;
-  config: T_config_connection_mysql;
+  pool!: Pool;
+  raw_config!: PoolOptions;
+  config!: T_config_connection_mysql;
 
   constructor(config?: T_config_connection) {
     super();
@@ -79,7 +80,7 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
       }
 
       if ( ! c.log?.logger) {
-        c.log.logger = (...args) => console.info('●', ...args);
+        c.log.logger = (...args: any) => console.info('●', ...args);
       }
     } else {
       c.log = false;
@@ -106,7 +107,7 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
   }
 
   async server_version(): Promise<string> {
-    const r = await this.query('select version() as version');
+    const r: any = await this.query('select version() as version');
     return r[0][0].version;
   }
 
@@ -126,7 +127,7 @@ from information_schema.schemata`.trim());
   }
 
   async database_pick(name: string): Promise<T_row_database> {
-    const r = await this.query(`
+    const r: any = await this.query(`
 select schema_name as \`name\`, default_character_set_name as \`encoding\`, default_collation_name as \`collate\`
 from information_schema.schemata
 where schema_name = ?`.trim(), [ name ]);
@@ -142,7 +143,7 @@ where schema_name = ?`.trim(), [ name ]);
 
   async query<T = any, T_params = any>(opt: IN_query<T_params>): Promise<T_result<T>>;
   async query<T = any, T_params = any>(sql: string, params?: T_params): Promise<T_result<T>>
-  async query<T = any, T_params = any>(a, b?) {
+  async query<T = any, T_params = any>(a: any, b?: any) {
     let opt: IN_query = {};
     if (typeof a === 'string') {
       opt.sql = a;
@@ -151,7 +152,7 @@ where schema_name = ?`.trim(), [ name ]);
       opt = a;
     }
 
-    const r = await this.pool.query({ sql: opt.sql, values: opt.params });
+    const r = await this.pool.query({ sql: opt.sql, values: opt.params } as QueryOptions);
     return key_replace<T_result<T>>(r, { rowCount: 'count' });
   }
 
@@ -163,7 +164,7 @@ where schema_name = ?`.trim(), [ name ]);
         param_part = '-- ' + JSON.stringify(params);
       }
 
-      log.logger(sql, param_part);
+      log.logger!(sql, param_part);
     }
   }
 }

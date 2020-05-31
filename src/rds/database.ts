@@ -12,9 +12,9 @@ export interface T_config_database extends T_config_connection {
  */
 export class Database extends Connection implements T_database {
   // static def: T_config_database = merge(Connection.def, { system: { ensure_database: true } })
-  config: T_config_database;
+  config!: T_config_database;
 
-  adapter: Database_postgres;
+  adapter!: Database_postgres;
 
   /**
    * Validate database configurations
@@ -28,7 +28,7 @@ export class Database extends Connection implements T_database {
    * Get one table info
    * @param name
    */
-  async table_pick(name: string): Promise<T_table> {
+  async table_pick(name: string): Promise<T_table | null> {
     return this.adapter.table_pick(name);
   }
 
@@ -115,7 +115,7 @@ export interface T_database extends T_connection {
 
   table_list(): Promise<T_table[]>
 
-  table_pick(name: string): Promise<T_table>
+  table_pick(name: string): Promise<T_table | null>
 
   migration_init_state(): Promise<void>
 

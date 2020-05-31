@@ -5,10 +5,10 @@ import { Database_postgres, T_config_database_postgres } from './database_postgr
 const e = process.env;
 
 const conf: T_config_database_postgres = {
-  database: e.postgres_database,
+  database: e.postgres_database!,
   dialect: N_db_type.postgres,
   host: e.postgres_host,
-  port: +e.postgres_port,
+  port: +e.postgres_port!,
   user: e.postgres_user,
   password: e.postgres_password,
   log: { log_params: true },
@@ -37,6 +37,14 @@ it('table_pick/table_drop', async () => {
 it('table_list', async () => {
   const tbs = [ 'a', 'b', 'c' ];
   for (const it of tbs) { await db.table_create_test(it); }
+  const r = await db.table_list_names();
+  expect(r?.length).toBe(3);
+  for (const it of tbs) { await db.table_drop(it); }
+});
+
+it('table_list', async () => {
+  const tbs = [ 'a', 'b', 'c' ];
+  for (const it of tbs) { await db.table_create_test(it); }
   const r = await db.table_list();
   expect(r?.length).toBe(3);
   expect(await db.table_pick(tbs[0])).toBeTruthy();
@@ -51,4 +59,11 @@ it('table_list', async () => {
 
 it('table_create', async () => {
 
+});
+
+it('table_pick', async () => {
+  await db.table_create_test('a');
+  const row = await db.table_pick('a');
+  expect(row?.fields?.length).toBeTruthy();
+  await db.table_drop('a');
 });

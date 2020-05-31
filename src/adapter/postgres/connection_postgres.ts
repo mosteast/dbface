@@ -1,7 +1,7 @@
 import * as events from 'events';
 import { cloneDeep, merge } from 'lodash';
 import { resolve } from 'path';
-import { Pool, PoolClient, PoolConfig } from 'pg';
+import { Pool, PoolClient, PoolConfig, QueryConfig } from 'pg';
 import { pwd } from 'shelljs';
 import { IN_query, N_db_type, T_config_connection, T_connection, T_opt_log, T_result } from '../../rds/connection';
 import { T_row_database, table_migration, table_system } from '../../type';
@@ -18,7 +18,7 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
   static def: T_config_connection_postgres = {
     dialect: N_db_type.postgres,
     host: env.ormx_type,
-    port: +env.ormx_port,
+    port: +env.ormx_port!,
     user: env.ormx_user,
     password: env.ormx_password,
     uri: env.ormx_uri,
@@ -33,10 +33,10 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
     },
   };
 
-  pool: Pool;
-  client: PoolClient;
-  raw_config: PoolConfig;
-  config: T_config_connection_postgres;
+  pool!: Pool;
+  client!: PoolClient;
+  raw_config!: PoolConfig;
+  config!: T_config_connection_postgres;
 
   constructor(config?: T_config_connection) {
     super();
@@ -80,7 +80,7 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
       }
 
       if ( ! c.log?.logger) {
-        c.log.logger = (...args) => console.info('●', ...args);
+        c.log.logger = (...args: any) => console.info('●', ...args);
       }
     } else {
       c.log = false;
@@ -152,7 +152,7 @@ limit 1`.trim(), [ name ]);
 
   async query<T = any, T_params = any>(opt: IN_query<T_params>): Promise<T_result<T>>;
   async query<T = any, T_params = any>(sql: string, params?: T_params): Promise<T_result<T>>;
-  async query<T = any, T_params = any>(a, b?) {
+  async query<T = any, T_params = any>(a: any, b?: any) {
     let opt: IN_query = {};
     if (typeof a === 'string') {
       opt.sql = a;
@@ -161,7 +161,7 @@ limit 1`.trim(), [ name ]);
       opt = a;
     }
 
-    const r = await this.client.query<T>({ text: opt.sql, values: opt.params });
+    const r = await this.client.query({ text: opt.sql, values: opt.params } as QueryConfig);
     return key_replace<T_result<T>>(r, { rowCount: 'count' });
   }
 
@@ -173,7 +173,7 @@ limit 1`.trim(), [ name ]);
         param_part = '-- ' + JSON.stringify(params);
       }
 
-      log.logger(sql, param_part);
+      log.logger!(sql, param_part);
     }
   }
 }
