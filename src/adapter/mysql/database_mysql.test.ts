@@ -2,10 +2,12 @@ import { readdir } from 'fs-extra';
 import { keys } from 'lodash';
 import { resolve } from 'path';
 import { N_db_type } from '../../rds/connection';
+import { Connection_mysql } from './connection_mysql';
 import { Database_mysql, T_config_database_mysql } from './database_mysql';
 
 jest.setTimeout(150000);
 
+const name = 'a';
 const e = process.env;
 
 const conf: T_config_database_mysql = {
@@ -22,9 +24,13 @@ const conf: T_config_database_mysql = {
   },
 };
 
+let con: Connection_mysql;
 let db: Database_mysql;
 
 beforeEach(async () => {
+  con = new Connection_mysql(conf);
+  await con.connect();
+  await con.database_ensure('a');
   db = new Database_mysql(conf);
   await db.connect();
   await db.state_reset();
@@ -41,6 +47,11 @@ it('table_pick/table_drop', async () => {
   expect(r?.name).toBe(name);
   await db.table_drop(name);
   expect(await db.table_pick(name)).toBeFalsy();
+});
+
+it('table_create_test', async () => {
+  await db.table_create_test(name);
+  expect(await db.table_pick(name)).toBeTruthy();
 });
 
 it('table_list', async () => {

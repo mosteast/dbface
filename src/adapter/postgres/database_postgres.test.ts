@@ -9,6 +9,8 @@ jest.setTimeout(150000);
 
 const e = process.env;
 
+const name = 'a';
+
 const conf: T_config_database_postgres = {
   database: e.postgres_database!,
   dialect: N_db_type.postgres,
@@ -37,6 +39,11 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await db.table_drop_all();
+});
+
+it('table_create_test', async () => {
+  await db.table_create_test(name);
+  expect(await db.table_pick(name)).toBeTruthy();
 });
 
 it('table_pick/table_drop', async () => {
@@ -76,11 +83,11 @@ it('table_list/table_count', async () => {
 });
 
 it('table_pick', async () => {
-  await db.table_create_test('a');
-  const row = await db.table_pick('a');
+  await db.table_create_test(name);
+  const row = await db.table_pick(name);
   console.log(row);
   expect(keys(row?.fields)).toBeTruthy();
-  await db.table_drop('a');
+  await db.table_drop(name);
 });
 
 it('migration_list_all/migration_list_all_ids', async () => {

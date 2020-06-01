@@ -27,7 +27,7 @@ export class Database_mysql extends Connection_mysql implements T_database {
   config!: T_config_database_mysql;
 
   static adapt_field(field_like: T_field | any): T_field {
-    const f: T_field | any = key_replace(field_like, { field: 'name', null: 'nullable' });
+    const f: T_field | any = key_replace(field_like, { Field: 'name', Type: 'type', Default: 'default', Extra: 'Extra', Null: 'nullable', Key: 'key' });
     f.nullable = f.nullable === 'YES' ? true : false;
     return f;
   }
@@ -46,7 +46,7 @@ export class Database_mysql extends Connection_mysql implements T_database {
 
   async state_get<T = any>(key: string): Promise<T | undefined> {
     const name = this.get_config().state!.table_name;
-    const r = await this.query(`select * from \`${name}\` where "key" = ?`, [ key ]);
+    const r = await this.query(`select * from ?? where \`key\` = ?`, [ name, key ]);
     const row = r.rows[0];
     if (row) {
       return row.value;
@@ -56,12 +56,12 @@ export class Database_mysql extends Connection_mysql implements T_database {
   async state_set(key: string, value: any): Promise<void> {
     const name = this.get_config().state!.table_name;
     value = JSON.stringify(value);
-    await this.query(`insert into \`${name}\` (\`key\`, \`value\`) values (?, ?) on conflict (\`key\`) do update set \`value\` = ?`, [ key, value, value ]);
+    await this.query(`replace into ?? (\`key\`, \`value\`) values (?, ?)`, [ name, key, value ]);
   }
 
   async state_unset(key: string): Promise<void> {
     const name = this.get_config().state!.table_name;
-    await this.query(`delete from \`${name}\` where \`key\` = ?`, [ key ]);
+    await this.query(`delete from ?? where \`key\` = ?`, [ name, key ]);
   }
 
   /**
@@ -85,9 +85,9 @@ export class Database_mysql extends Connection_mysql implements T_database {
   async state_ensure_table(): Promise<void> {
     const name = this.get_config().state!.table_name;
     await this.query(`
-      create table if not exists \`${name}\` (
+      create table if not exists ?? (
         \`key\` varchar(64) primary key,
-        \`value\` json)`);
+        \`value\` json)`, [ name ]);
   }
 
   async state_drop_table(): Promise<void> {
@@ -103,7 +103,7 @@ export class Database_mysql extends Connection_mysql implements T_database {
     if (env !== 'testing') { throw new Invalid_state(`Invalid NODE_ENV ${env}, testing table will only be created in testing environment`); }
 
     await this.query(`
-      create table if not exists \`${name}\` (
+      create table if not exists ?? (
         id serial primary key, 
         smallint_ smallint,
         int_ int,
@@ -115,10 +115,9 @@ export class Database_mysql extends Connection_mysql implements T_database {
         numeric_ numeric,
         float_ float,
         real_ real,
-        varchar_ varchar, 
-        timestamp_ timestamp, 
-        interval_ interval, 
-        not_null_ int not null)`);
+        varchar_ varchar(255), 
+        timestamp_ timestamp,
+        not_null_ int(11) not null)`, [ name ]);
   }
 
   /**
@@ -127,9 +126,17 @@ export class Database_mysql extends Connection_mysql implements T_database {
    */
   async table_pick(name: string): Promise<T_table | null> {
     const row: T_table = { name };
-    const q_fields = await this.query<T_field[]>(`desc \`${name}\``);
-    row.fields = keyBy(q_fields.rows.map(Database_mysql.adapt_field), 'name');
-    return row;
+    try {
+      const q_fields = await this.query<T_field[]>(`desc ??`, [ name ]);
+      row.fields = keyBy(q_fields.rows.map(Database_mysql.adapt_field), 'name');
+      return row;
+    } catch (e) {
+      if (e.message.includes('doesn\'t exist')) {
+        return null;
+      }
+
+      throw e;
+    }
   }
 
   /**
@@ -137,8 +144,8 @@ export class Database_mysql extends Connection_mysql implements T_database {
    * @param name
    */
   async table_list_names(): Promise<string[]> {
-    const r = await this.query<T_table>(`show tables`);
-    return r.rows.map(it => it.name);
+    const r = await this.query(`show tables`);
+    return r.rows.map(it => it.Tables_in_a);
   }
 
   /**
