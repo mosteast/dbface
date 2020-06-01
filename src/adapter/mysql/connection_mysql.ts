@@ -1,15 +1,13 @@
 import * as events from 'events';
-import { cloneDeep, merge } from 'lodash';
+import { cloneDeep, merge, pick } from 'lodash';
 import { QueryOptions } from 'mysql2';
 import { createPool, Pool, PoolOptions } from 'mysql2/promise';
-import { Connection, IN_query, N_db_type, T_config_connection, T_connection, T_opt_log, T_result } from '../../rds/connection';
+import { Connection, IN_query, N_db_type, T_config_connection, T_connection, T_result } from '../../rds/connection';
 import { T_row_database } from '../../type';
 
 export interface T_config_connection_mysql extends T_config_connection {
   dialect: N_db_type.mysql
 }
-
-const env = process.env;
 
 export class Connection_mysql extends events.EventEmitter implements T_connection {
   /**
@@ -28,12 +26,6 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
 
   async connect(): Promise<void> {
     if ( ! this.pool) {
-      const conf = this.raw_config;
-      // If is pure connection
-      if (this.constructor.name === Connection_mysql.name) {
-        delete conf.database; // delete database option to prevent database not exist exception
-      }
-
       this.pool = createPool(this.raw_config);
     }
   }
@@ -49,17 +41,11 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
   set_config(config: T_config_connection): void {
     this.config = merge((this.constructor as typeof Connection_mysql).def, config);
     this.adapt_config();
-    console.log(this.raw_config);
   }
 
   adapt_config(): void {
-    const copy: any = cloneDeep(this.config);
-    delete copy.log;
-    delete copy.dialect;
-    delete copy.state;
-
-    this.raw_config = copy;
-    // key_replace(this.raw_config, { uri: 'connectionString' });
+    const conf = pick(cloneDeep(this.config), [ 'user', 'password', 'host', 'port' ] as (keyof T_config_connection_mysql)[]);
+    this.raw_config = conf;
   }
 
   validate_config(): void {
@@ -117,20 +103,9 @@ where schema_name = ?`.trim(), [ name ]);
       opt = a;
     }
 
+    Connection.log(this, opt);
     const r = await this.pool.query({ sql: opt.sql, values: opt.params } as QueryOptions);
     return { rows: r[0] };
-  }
-
-  log({ sql, params }: IN_query) {
-    const log: T_opt_log = this.config.log as T_opt_log;
-    if (log) {
-      let param_part = '';
-      if (log.log_params && params) {
-        param_part = '-- ' + JSON.stringify(params);
-      }
-
-      log.logger!(sql, param_part);
-    }
   }
 
   kill(database: string): Promise<void> {

@@ -1,7 +1,7 @@
 import * as events from 'events';
-import { cloneDeep, merge } from 'lodash';
+import { cloneDeep, merge, pick } from 'lodash';
 import { Pool, PoolClient, PoolConfig, QueryConfig } from 'pg';
-import { Connection, IN_query, N_db_type, T_config_connection, T_connection, T_opt_log, T_result } from '../../rds/connection';
+import { Connection, IN_query, N_db_type, T_config_connection, T_connection, T_result } from '../../rds/connection';
 import { T_row_database } from '../../type';
 import { key_replace } from '../../util/obj';
 
@@ -53,12 +53,8 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
   }
 
   adapt_config(): void {
-    const copy: any = cloneDeep(this.config);
-    delete copy.log;
-    delete copy.dialect;
-    delete copy.state;
-
-    this.raw_config = copy;
+    const conf: PoolConfig = pick(cloneDeep(this.config), [ 'user', 'password', 'host', 'port', 'uri' ] as (keyof T_config_connection_postgres)[]) as PoolConfig;
+    this.raw_config = conf;
     key_replace(this.raw_config, { uri: 'connectionString' });
   }
 
@@ -136,34 +132,9 @@ limit 1`, [ name ]);
       opt = a;
     }
 
-    this.log(opt);
+    Connection.log(this, opt);
     const r = await this.client.query({ text: opt.sql, values: opt.params } as QueryConfig);
     return key_replace<T_result<T>>(r, { rowCount: 'count' });
-  }
-
-  log({ sql, params, log }: IN_query) {
-    log = log || this.config.log as T_opt_log;
-    if (log) {
-      switch (typeof log) {
-        case 'function':
-          log = { logger: log };
-          break;
-        default:
-          log = {};
-          break;
-      }
-
-      if ( ! log?.logger) {
-        log.logger = (...args: any) => console.info('●', ...args);
-      }
-
-      let param_part = '';
-      if (log.log_params && params) {
-        param_part = '-- ' + JSON.stringify(params);
-      }
-
-      log.logger(sql?.trim(), param_part);
-    }
   }
 }
 

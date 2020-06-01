@@ -1,6 +1,6 @@
 import { print_info, print_success } from '@mosteast/print_helper';
 import { readdir } from 'fs-extra';
-import { cloneDeep, keyBy, merge } from 'lodash';
+import { cloneDeep, keyBy, merge, pick } from 'lodash';
 import { resolve } from 'path';
 import { Invalid_argument } from '../../error/invalid_argument';
 import { Invalid_state } from '../../error/invalid_state';
@@ -39,13 +39,9 @@ export class Database_mysql extends Connection_mysql implements T_database {
 
   adapt_config(): void {
     super.adapt_config();
-    const copy: any = cloneDeep(this.raw_config);
-    delete copy.migration;
-    this.raw_config = copy;
-  }
-
-  async connect(): Promise<void> {
-    return super.connect();
+    const parent: any = cloneDeep(this.raw_config);
+    const conf = pick(cloneDeep(this.config), [ 'database' ] as (keyof T_config_database_mysql)[]);
+    this.raw_config = merge(parent, conf);
   }
 
   async state_get<T = any>(key: string): Promise<T | undefined> {
