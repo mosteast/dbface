@@ -2,18 +2,20 @@ import * as events from 'events';
 import { cloneDeep, merge, pick } from 'lodash';
 import { QueryOptions } from 'mysql2';
 import { createPool, Pool, PoolOptions } from 'mysql2/promise';
-import { Connection, IN_query, N_db_type, T_config_connection, T_connection, T_result } from '../../rds/connection';
-import { T_row_database } from '../../type';
+import { Connection} from '../../rds/connection';
+import { def_connection_mysql } from '../../rds/constant/defaults';
+import { connection_validate_config } from '../../rds/utility/config';
+import { N_dialect, T_config_connection, T_connection, T_opt_query, T_result, T_row_database } from '../../type';
 
 export interface T_config_connection_mysql extends T_config_connection {
-  dialect: N_db_type.mysql
+  dialect: N_dialect.mysql
 }
 
 export class Connection_mysql extends events.EventEmitter implements T_connection {
   /**
    * Default configuration as a base to merge
    */
-  static def: T_config_connection_mysql = merge(Connection.def, { dialect: N_db_type.mysql }) as T_config_connection_mysql;
+  static def: T_config_connection_mysql = def_connection_mysql;
 
   pool!: Pool;
   raw_config!: PoolOptions;
@@ -49,7 +51,7 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
   }
 
   validate_config(): void {
-    Connection.validate_config(this.config);
+    connection_validate_config(this.config);
   }
 
   async ping() {
@@ -91,10 +93,10 @@ where schema_name = ?`.trim(), [ name ]);
     return await this.database_create(name);
   }
 
-  async query<T = any, T_params = any>(opt: IN_query<T_params>): Promise<T_result<T>>;
-  async query<T = any, T_params = any>(sql: string, params?: T_params, opt?: IN_query<T_params>): Promise<T_result<T>>
+  async query<T = any, T_params = any>(opt: T_opt_query<T_params>): Promise<T_result<T>>;
+  async query<T = any, T_params = any>(sql: string, params?: T_params, opt?: T_opt_query<T_params>): Promise<T_result<T>>
   async query<T = any, T_params = any>(a: any, b?: any, c?: any) {
-    let opt: IN_query = {};
+    let opt: T_opt_query = {};
     if (typeof a === 'string') {
       opt = merge(opt, c);
       opt.sql = a;

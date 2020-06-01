@@ -1,24 +1,25 @@
 import * as events from 'events';
 import { cloneDeep, merge, pick } from 'lodash';
 import { Pool, PoolClient, PoolConfig, QueryConfig } from 'pg';
-import { Connection, IN_query, N_db_type, T_config_connection, T_connection, T_result } from '../../rds/connection';
-import { T_row_database } from '../../type';
+import { Connection} from '../../rds/connection';
+import { def_connection_postgres } from '../../rds/constant/defaults';
+import { connection_validate_config } from '../../rds/utility/config';
+import { N_dialect, T_config_connection, T_connection, T_opt_query, T_result, T_row_database } from '../../type';
 import { key_replace } from '../../util/obj';
 
 const e = require('pg-escape');
-
-const env = process.env;
 
 export class Connection_postgres extends events.EventEmitter implements T_connection {
   /**
    * Default configuration as a base to merge
    */
-  static def: T_config_connection_postgres = merge(Connection.def, { dialect: N_db_type.postgres }) as T_config_connection_postgres;
+  static def: T_config_connection_postgres = def_connection_postgres;
 
   pool!: Pool;
-  client!: PoolClient;
   raw_config!: PoolConfig;
   config!: T_config_connection_postgres;
+
+  protected client!: PoolClient;
 
   constructor(config?: T_config_connection) {
     super();
@@ -59,7 +60,7 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
   }
 
   validate_config(): void {
-    Connection.validate_config(this.config);
+    connection_validate_config(this.config);
   }
 
   async ping() {
@@ -120,10 +121,10 @@ limit 1`, [ name ]);
     return await this.database_create(name);
   }
 
-  async query<T = any, T_params = any>(opt: IN_query<T_params>): Promise<T_result<T>>;
-  async query<T = any, T_params = any>(sql: string, params?: T_params, opt?: IN_query<T_params>): Promise<T_result<T>>;
+  async query<T = any, T_params = any>(opt: T_opt_query<T_params>): Promise<T_result<T>>;
+  async query<T = any, T_params = any>(sql: string, params?: T_params, opt?: T_opt_query<T_params>): Promise<T_result<T>>;
   async query<T = any, T_params = any>(a: any, b?: any, c?: any) {
-    let opt: IN_query = {};
+    let opt: T_opt_query = {};
     if (typeof a === 'string') {
       opt = merge(opt, c);
       opt.sql = a;
@@ -139,5 +140,5 @@ limit 1`, [ name ]);
 }
 
 export interface T_config_connection_postgres extends T_config_connection {
-  dialect: N_db_type.postgres
+  dialect: N_dialect.postgres
 }

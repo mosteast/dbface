@@ -1,5 +1,5 @@
-import { N_dialect } from '../../type';
-import { Connection_postgres, T_config_connection_postgres } from './connection_postgres';
+import { N_dialect, T_config_connection } from '../type';
+import { Connection } from './connection';
 
 jest.setTimeout(15000);
 
@@ -7,7 +7,7 @@ const e = process.env;
 
 const name = 'a';
 
-const conf: T_config_connection_postgres = {
+const conf: T_config_connection = {
   dialect: N_dialect.postgres,
   host: e.postgres_host,
   port: +e.postgres_port!,
@@ -16,10 +16,10 @@ const conf: T_config_connection_postgres = {
   log: { log_params: true },
 };
 
-let con: Connection_postgres;
+let con: Connection;
 
 beforeEach(async () => {
-  con = new Connection_postgres();
+  con = new Connection();
   con.set_config(conf);
   await con.connect();
   await con.kill(name);

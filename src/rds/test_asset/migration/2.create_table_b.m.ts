@@ -1,5 +1,5 @@
-import { Database} from '../../../../rds/database';
-import { T_migration_module } from '../../../../type';
+import { T_migration_module } from '../../../type';
+import { Database } from '../../database';
 
 const migration: T_migration_module = {
   async forward(database: Database): Promise<void> {

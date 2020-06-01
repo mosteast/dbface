@@ -1,9 +1,9 @@
 import { readdir } from 'fs-extra';
 import { keys } from 'lodash';
 import { resolve } from 'path';
-import { N_dialect } from '../../type';
-import { Connection_postgres } from './connection_postgres';
-import { Database_postgres, T_config_database_postgres } from './database_postgres';
+import { N_dialect, T_config_database } from '../type';
+import { Connection } from './connection';
+import { Database } from './database';
 
 jest.setTimeout(150000);
 
@@ -11,7 +11,7 @@ const e = process.env;
 
 const name = 'a';
 
-const conf: T_config_database_postgres = {
+const conf: T_config_database = {
   database: e.postgres_database!,
   dialect: N_dialect.postgres,
   host: e.postgres_host,
@@ -25,14 +25,14 @@ const conf: T_config_database_postgres = {
   },
 };
 
-let con: Connection_postgres;
-let db: Database_postgres;
+let con: Connection;
+let db: Database;
 
 beforeEach(async () => {
-  con = new Connection_postgres(conf);
+  con = new Connection(conf);
   await con.connect();
   await con.database_ensure('a');
-  db = new Database_postgres(conf);
+  db = new Database(conf);
   await db.connect();
   await db.state_reset();
 });
@@ -95,7 +95,7 @@ it('migration_list_all/migration_list_all_ids', async () => {
   const ids = await db.migration_list_all_ids();
   const files = await readdir(db.get_config().migration?.file_dir!);
   for (const it of files) { expect(names.includes(it)).toBeTruthy(); }
-  for (const it of files) { expect(ids.includes(+it.split('.')[0])).toBeTruthy(); }
+  for (const it of files) { expect(ids?.includes(+it.split('.')[0])).toBeTruthy(); }
 });
 
 it('migration_get_files', async () => {

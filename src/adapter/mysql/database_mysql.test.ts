@@ -1,7 +1,7 @@
 import { readdir } from 'fs-extra';
 import { keys } from 'lodash';
 import { resolve } from 'path';
-import { N_db_type } from '../../rds/connection';
+import { N_dialect } from '../../type';
 import { Connection_mysql } from './connection_mysql';
 import { Database_mysql, T_config_database_mysql } from './database_mysql';
 
@@ -12,7 +12,7 @@ const e = process.env;
 
 const conf: T_config_database_mysql = {
   database: e.mysql_database!,
-  dialect: N_db_type.mysql,
+  dialect: N_dialect.mysql,
   host: e.mysql_host,
   port: +e.mysql_port!,
   user: e.mysql_user,

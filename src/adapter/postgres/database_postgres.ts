@@ -1,19 +1,19 @@
 import { print_info, print_success } from '@mosteast/print_helper';
 import { readdir } from 'fs-extra';
-import { cloneDeep, keyBy, merge } from 'lodash';
+import { cloneDeep, keyBy } from 'lodash';
 import { resolve } from 'path';
 import { Invalid_argument } from '../../error/invalid_argument';
 import { Invalid_state } from '../../error/invalid_state';
-import { N_db_type } from '../../rds/connection';
-import { Database, T_config_database, T_database, T_field, T_migration_module, T_table } from '../../rds/database';
-import { migration_log_ } from '../../type';
+import { def_database_postgres } from '../../rds/constant/defaults';
+import { database_validate_config } from '../../rds/utility/config';
+import { IN_migration_run, migration_log_, N_dialect, T_config_database, T_database, T_field, T_migration_module, T_table } from '../../type';
 import { key_replace } from '../../util/obj';
 import { Connection_postgres } from './connection_postgres';
 
 const e = require('pg-escape');
 
 export interface T_config_database_postgres extends T_config_database {
-  dialect: N_db_type.postgres
+  dialect: N_dialect.postgres
 }
 
 /**
@@ -24,7 +24,7 @@ export class Database_postgres extends Connection_postgres implements T_database
   /**
    * Default configuration as a base to merge
    */
-  static def: T_config_database_postgres = merge(Connection_postgres.def, Database.def, {} as T_config_database_postgres);
+  static def: T_config_database_postgres = def_database_postgres;
 
   config!: T_config_database_postgres;
 
@@ -36,7 +36,7 @@ export class Database_postgres extends Connection_postgres implements T_database
 
   validate_config() {
     super.validate_config();
-    Database.validate_config(this.config);
+    database_validate_config(this.config);
   }
 
   adapt_config(): void {
@@ -243,6 +243,7 @@ export class Database_postgres extends Connection_postgres implements T_database
 
   async migration_list_all_ids(): Promise<number[]> {
     const r = await this.migration_list_all();
+    if ( ! r.length) { return [];}
     return r.map(it => +it.split('.')[0]).sort();
   }
 
@@ -336,8 +337,4 @@ export class Database_postgres extends Connection_postgres implements T_database
 
     return r;
   }
-}
-
-export interface IN_migration_run {
-  step?: number
 }

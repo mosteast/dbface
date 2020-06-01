@@ -4,14 +4,14 @@ import { cloneDeep, keyBy, merge, pick } from 'lodash';
 import { resolve } from 'path';
 import { Invalid_argument } from '../../error/invalid_argument';
 import { Invalid_state } from '../../error/invalid_state';
-import { N_db_type } from '../../rds/connection';
-import { Database, T_config_database, T_database, T_field, T_migration_module, T_table } from '../../rds/database';
-import { migration_log_ } from '../../type';
+import { def_database_mysql } from '../../rds/constant/defaults';
+import { database_validate_config } from '../../rds/utility/config';
+import { IN_migration_run, migration_log_, N_dialect, T_config_database, T_database, T_field, T_migration_module, T_table } from '../../type';
 import { key_replace } from '../../util/obj';
 import { Connection_mysql } from './connection_mysql';
 
 export interface T_config_database_mysql extends T_config_database {
-  dialect: N_db_type.mysql
+  dialect: N_dialect.mysql
 }
 
 /**
@@ -22,7 +22,7 @@ export class Database_mysql extends Connection_mysql implements T_database {
   /**
    * Default configuration as a base to merge
    */
-  static def: T_config_database_mysql = merge(Connection_mysql.def, Database.def, {} as T_config_database_mysql);
+  static def: T_config_database_mysql = def_database_mysql;
 
   config!: T_config_database_mysql;
 
@@ -34,7 +34,7 @@ export class Database_mysql extends Connection_mysql implements T_database {
 
   validate_config() {
     super.validate_config();
-    Database.validate_config(this.config);
+    database_validate_config(this.config);
   }
 
   adapt_config(): void {
@@ -98,7 +98,7 @@ export class Database_mysql extends Connection_mysql implements T_database {
   /**
    * Create testing table
    */
-  async table_create_test(name: string) {
+  async table_create_test(name: string): Promise<void> {
     const env = process.env.NODE_ENV;
     if (env !== 'testing') { throw new Invalid_state(`Invalid NODE_ENV ${env}, testing table will only be created in testing environment`); }
 
@@ -200,6 +200,7 @@ export class Database_mysql extends Connection_mysql implements T_database {
 
   async migration_list_all_ids(): Promise<number[]> {
     const r = await this.migration_list_all();
+    if ( ! r.length) { return [];}
     return r.map(it => +it.split('.')[0]).sort();
   }
 
@@ -293,8 +294,4 @@ export class Database_mysql extends Connection_mysql implements T_database {
 
     return r;
   }
-}
-
-export interface IN_migration_run {
-  step?: number
 }
