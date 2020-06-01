@@ -5,6 +5,8 @@ jest.setTimeout(15000);
 
 const e = process.env;
 
+const name = 'a';
+
 const conf: T_config_connection_postgres = {
   dialect: N_db_type.postgres,
   host: e.postgres_host,
@@ -20,6 +22,7 @@ beforeEach(async () => {
   con = new Connection_postgres();
   con.set_config(conf);
   await con.connect();
+  await con.kill(name);
 });
 
 it('can connect', async () => {
@@ -27,20 +30,17 @@ it('can connect', async () => {
 });
 
 it('database_create', async () => {
-  const name = 'a';
   await con.database_drop(name);
   expect((await con.database_create(name)).name).toBe(name);
 });
 
 it('database_pick', async () => {
-  const name = 'a';
   await con.database_drop(name);
   await con.database_create(name);
   expect((await con.database_pick(name)).name).toBe(name);
 });
 
 it('database_drop', async () => {
-  const name = 'a';
   await con.database_ensure(name);
   expect((await con.database_pick(name))).toBeTruthy();
   await con.database_drop(name);

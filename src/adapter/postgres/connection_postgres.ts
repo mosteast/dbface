@@ -81,6 +81,16 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
     return r.rows[0].version;
   }
 
+  async kill(database: string) {
+    await this.query(`
+      SELECT 
+         pg_terminate_backend(pg_stat_activity.pid)
+      FROM pg_stat_activity
+      WHERE
+         pg_stat_activity.datname = $1
+      AND pid <> pg_backend_pid()`, [ database ]);
+  }
+
   async database_create(name: string): Promise<T_row_database> {
     await this.query(e(`create database "%I"`, name));
     return this.database_pick(name);

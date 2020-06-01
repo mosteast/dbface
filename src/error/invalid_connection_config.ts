@@ -1,4 +1,4 @@
-import { E } from '@mosteast/e'
+import { E } from '@mosteast/e';
 
 export class Invalid_connection_config extends E {
   eid = 'invalid_connection_config'

@@ -1,5 +1,5 @@
-import { trim } from 'lodash'
-import { T_object } from '../../type'
+import { trim } from 'lodash';
+import { T_object } from '../../type';
 
 /**
  * Serialize invalid map

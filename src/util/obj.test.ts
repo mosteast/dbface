@@ -1,4 +1,4 @@
-import { key_replace } from './obj'
+import { key_replace } from './obj';
 
 it('key_replacer', async () => {
   const o: any = { a: 1, b: 2, c: 3 }

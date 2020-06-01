@@ -156,4 +156,10 @@ where schema_name = ?`.trim(), [ name ]);
       log.logger!(sql, param_part);
     }
   }
+
+  kill(database: string): Promise<void> {
+    // todo: use SHOW PROCESSLIST to kill a connection
+
+    return this.close();
+  }
 }

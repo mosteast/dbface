@@ -1,4 +1,4 @@
-import { Invalid_connection_config } from './invalid_connection_config'
+import { Invalid_connection_config } from './invalid_connection_config';
 
 it('invalid_connection_config', async () => {
   expect(() => {throw new Invalid_connection_config('a')}).toThrow('a')

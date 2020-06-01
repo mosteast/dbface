@@ -154,6 +154,10 @@ export class Connection extends events.EventEmitter implements T_connection {
   server_version(): Promise<string> {
     return this.adapter.server_version();
   }
+
+  kill(database: string): Promise<void> {
+    return this.adapter.kill(database);
+  }
 }
 
 export type T_raw_config = PoolConfig
@@ -231,6 +235,12 @@ export interface T_connection {
   query<T = any, T_params = any>(opt: IN_query): Promise<T>
 
   query<T = any, T_params = any>(sql: string, params?: T_params, opt?: IN_query): Promise<T>
+
+  /**
+   * Kill connection by database
+   * @param database
+   */
+  kill(database: string): Promise<void>
 
   /**
    * Drop database by name

@@ -1,4 +1,5 @@
 import { readdir } from 'fs-extra';
+import { keys } from 'lodash';
 import { resolve } from 'path';
 import { N_db_type } from '../../rds/connection';
 import { Connection_postgres } from './connection_postgres';
@@ -77,7 +78,8 @@ it('table_list/table_count', async () => {
 it('table_pick', async () => {
   await db.table_create_test('a');
   const row = await db.table_pick('a');
-  expect(row?.fields?.length).toBeTruthy();
+  console.log(row);
+  expect(keys(row?.fields)).toBeTruthy();
   await db.table_drop('a');
 });
 
