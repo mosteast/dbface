@@ -293,7 +293,6 @@ export class Database_postgres extends Connection_postgres implements T_database
         ids = pending.slice(0, step);
       } else {
         ids = log.slice((log.length + step!), log.length);
-        console.log(ids);
       }
       names = await this.migration_get_files(ids);
     }
@@ -320,8 +319,8 @@ export class Database_postgres extends Connection_postgres implements T_database
     }
   }
 
-  migration_last(): Promise<number> {
-    throw new Error('Method not implemented.');
+  async migration_log(): Promise<number[] | undefined> {
+    return this.state_get(migration_log_);
   }
 
   async migration_get_files(ids: number[]): Promise<string[]> {

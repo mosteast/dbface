@@ -127,9 +127,22 @@ it('migration_run', async () => {
   for (const it of tbs) { expect(await db.table_pick(it)).toBeTruthy(); }
   const r = await db.table_pick('a');
   expect(r?.fields!.a1).toBeTruthy();
+  expect(await db.migration_log()).toEqual([ 1, 2, 3 ]);
 
   // Backward
   await db.migration_run(-1);
-  expect(r?.fields!.a1).toBeFalsy();
+  const r2 = await db.table_pick('a');
+  expect(r2?.fields!.a1).toBeFalsy();
+  expect(await db.migration_log()).toEqual([ 1, 2 ]);
 
+  await db.migration_run(1);
+  const r3 = await db.table_pick('a');
+  expect(r3?.fields!.a1).toBeTruthy();
+  expect(await db.migration_log()).toEqual([ 1, 2, 3 ]);
+
+  await db.migration_run(-2);
+  const r4 = await db.table_pick('a');
+  expect(r4?.fields!.id).toBeTruthy();
+  expect(r4?.fields!.a1).toBeFalsy();
+  expect(await db.table_pick('b')).toBeTruthy();
 });

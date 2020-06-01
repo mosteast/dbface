@@ -74,8 +74,8 @@ export class Database extends Connection implements T_database {
   /**
    * Last migration id
    */
-  async migration_last(): Promise<number> {
-    return this.adapter.migration_last();
+  async migration_log(): Promise<number[] | undefined> {
+    return this.adapter.migration_log();
   }
 
   state_get<T = any>(key: string): Promise<T | undefined> {
@@ -98,7 +98,7 @@ export class Database extends Connection implements T_database {
     return this.adapter.migration_list_all();
   }
 
-  migration_list_all_ids(): Promise<number[]> {
+  migration_list_all_ids(): Promise<number[] | undefined> {
     return this.adapter.migration_list_all_ids();
   }
 
@@ -191,7 +191,7 @@ export interface T_database extends T_connection {
    * Creating necessary tables and datum for migration.
    * --> 2
    */
-  migration_last(): Promise<number>
+  migration_log(): Promise<number[] | undefined>
 
   /**
    * Run migration
@@ -208,7 +208,7 @@ export interface T_database extends T_connection {
    * List all migration ids (files' numeric prefix)
    * --> [1, 2, 3]
    */
-  migration_list_all_ids(): Promise<number[]>
+  migration_list_all_ids(): Promise<number[] | undefined>
 
   /**
    * Get migration file paths by ids
