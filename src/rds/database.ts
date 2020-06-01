@@ -1,3 +1,7 @@
+import { merge } from 'lodash';
+import { resolve } from 'path';
+import { pwd } from 'shelljs';
+import { Connection_mysql } from '../adapter/mysql/connection_mysql';
 import { Database_postgres } from '../adapter/postgres/database_postgres';
 import { Invalid_connection_config } from '../error/invalid_connection_config';
 import { Connection, T_config_connection, T_connection, T_state_config } from './connection';
@@ -11,10 +15,27 @@ export interface T_config_database extends T_config_connection {
  * Connection with selected database
  */
 export class Database extends Connection implements T_database {
+  static def: T_config_connection = merge(Connection_mysql.def, {
+    migration: {
+      file_dir: resolve(pwd().toString(), 'migration'),
+      migration_file_suffix: '.m',
+    },
+    state: {
+      table_name: 'dbface_state',
+      ensure_database: true,
+    },
+  });
+
   // static def: T_config_database = merge(Connection.def, { system: { ensure_database: true } })
   config!: T_config_database;
 
   adapter!: Database_postgres;
+
+  static validate_config(config: T_config_database) {
+    if ( ! config.database) { throw new Invalid_connection_config('Required configs: {database}'); }
+    if ( ! config.migration?.file_dir) { throw new Invalid_connection_config('Required configs: {migration.file_dir}'); }
+    if ( ! config.state?.table_name) { throw new Invalid_connection_config('Required configs: {state.table_name}'); }
+  }
 
   /**
    * Validate database configurations

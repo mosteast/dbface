@@ -8,29 +8,27 @@ import { N_db_type } from '../../rds/connection';
 import { Database, T_config_database, T_database, T_field, T_migration_module, T_table } from '../../rds/database';
 import { migration_log_ } from '../../type';
 import { key_replace } from '../../util/obj';
-import { Connection_postgres } from './connection_postgres';
+import { Connection_mysql } from './connection_mysql';
 
-const e = require('pg-escape');
-
-export interface T_config_database_postgres extends T_config_database {
-  dialect: N_db_type.postgres
+export interface T_config_database_mysql extends T_config_database {
+  dialect: N_db_type.mysql
 }
 
 /**
  * Connection with selected database
  */
-export class Database_postgres extends Connection_postgres implements T_database {
+export class Database_mysql extends Connection_mysql implements T_database {
 
   /**
    * Default configuration as a base to merge
    */
-  static def: T_config_database_postgres = merge(Connection_postgres.def, Database.def, {} as T_config_database_postgres);
+  static def: T_config_database_mysql = merge(Connection_mysql.def, Database.def, {} as T_config_database_mysql);
 
-  config!: T_config_database_postgres;
+  config!: T_config_database_mysql;
 
   static adapt_field(field_like: T_field | any): T_field {
     const f: T_field | any = key_replace(field_like, { field: 'name', null: 'nullable' });
-    f.nullable = f.nullable === 'yes' ? true : false;
+    f.nullable = f.nullable === 'YES' ? true : false;
     return f;
   }
 
@@ -43,14 +41,16 @@ export class Database_postgres extends Connection_postgres implements T_database
     super.adapt_config();
     const copy: any = cloneDeep(this.raw_config);
     delete copy.migration;
-
     this.raw_config = copy;
-    key_replace(this.raw_config, { uri: 'connectionString' });
+  }
+
+  async connect(): Promise<void> {
+    return super.connect();
   }
 
   async state_get<T = any>(key: string): Promise<T | undefined> {
     const name = this.get_config().state!.table_name;
-    const r = await this.query(`select * from "${name}" where "key" = $1`, [ key ]);
+    const r = await this.query(`select * from \`${name}\` where "key" = ?`, [ key ]);
     const row = r.rows[0];
     if (row) {
       return row.value;
@@ -59,12 +59,13 @@ export class Database_postgres extends Connection_postgres implements T_database
 
   async state_set(key: string, value: any): Promise<void> {
     const name = this.get_config().state!.table_name;
-    await this.query(`insert into "${name}" ("key", "value") values ($1, $2) on conflict ("key") do update set "value" = $2`, [ key, JSON.stringify(value) ]);
+    value = JSON.stringify(value);
+    await this.query(`insert into \`${name}\` (\`key\`, \`value\`) values (?, ?) on conflict (\`key\`) do update set \`value\` = ?`, [ key, value, value ]);
   }
 
   async state_unset(key: string): Promise<void> {
     const name = this.get_config().state!.table_name;
-    await this.query(`delete from "${name}" where "key" = $1`, [ key ]);
+    await this.query(`delete from \`${name}\` where \`key\` = ?`, [ key ]);
   }
 
   /**
@@ -88,9 +89,9 @@ export class Database_postgres extends Connection_postgres implements T_database
   async state_ensure_table(): Promise<void> {
     const name = this.get_config().state!.table_name;
     await this.query(`
-      create table if not exists "${name}" (
-        "key" varchar(64) primary key ,
-        "value" jsonb)`);
+      create table if not exists \`${name}\` (
+        \`key\` varchar(64) primary key,
+        \`value\` json)`);
   }
 
   async state_drop_table(): Promise<void> {
@@ -105,8 +106,8 @@ export class Database_postgres extends Connection_postgres implements T_database
     const env = process.env.NODE_ENV;
     if (env !== 'testing') { throw new Invalid_state(`Invalid NODE_ENV ${env}, testing table will only be created in testing environment`); }
 
-    await this.query(e(`
-      create table if not exists "%I" (
+    await this.query(`
+      create table if not exists \`${name}\` (
         id serial primary key, 
         smallint_ smallint,
         int_ int,
@@ -121,7 +122,7 @@ export class Database_postgres extends Connection_postgres implements T_database
         varchar_ varchar, 
         timestamp_ timestamp, 
         interval_ interval, 
-        not_null_ int not null)`, [ name ]));
+        not_null_ int not null)`);
   }
 
   /**
@@ -129,49 +130,9 @@ export class Database_postgres extends Connection_postgres implements T_database
    * @param name
    */
   async table_pick(name: string): Promise<T_table | null> {
-    const def = await this.query<T_table>(`
-      select n.nspname as "schema",
-        c.relname as "name",
-        case c.relkind when 'r' then 'table' when 'v' then 'view' when 'm' then 'materialized view' when 'i' then 'index' when 's' then 'sequence' when 's' then 'special' when 'f' then 'foreign table' when 'p' then 'partitioned table' when 'i' then 'partitioned index' end as "type",
-        pg_catalog.pg_get_userbyid(c.relowner) as "owner"
-      from pg_catalog.pg_class c
-           left join pg_catalog.pg_namespace n on n.oid = c.relnamespace
-      where c.relkind in ('r','p','')
-            and n.nspname <> 'pg_catalog'
-            and n.nspname <> 'information_schema'
-            and n.nspname !~ '^pg_toast'
-            and pg_catalog.pg_table_is_visible(c.oid)
-            and c.relname = $1
-      order by 1,2;`, [ name ]);
-
-    const row = def.rows[0];
-
-    if ( ! row) {
-      return null;
-    }
-
-    const q_fields = await this.query<T_field[]>(`
-      select a.attname                                             as field,
-             t.typname || '(' || a.atttypmod || ')'                as type,
-             case when a.attnotnull = 't' then 'yes' else 'no' end as null,
-             case when r.contype = 'p' then 'pri' else '' end      as key,
-             (select substring(pg_catalog.pg_get_expr(d.adbin, d.adrelid), '(.*)')
-                from pg_catalog.pg_attrdef d
-                where d.adrelid = a.attrelid
-                  and d.adnum = a.attnum
-                  and a.atthasdef)                                 as default,
-             ''                                                    as extras
-        from pg_class c
-               join pg_attribute a on a.attrelid = c.oid
-               join pg_type t on a.atttypid = t.oid
-               left join pg_catalog.pg_constraint r on c.oid = r.conrelid
-          and r.conname = a.attname
-        where c.relname = $1
-          and a.attnum > 0
-      
-        order by a.attnum`, [ name ]);
-
-    row.fields = keyBy(q_fields.rows.map(Database_postgres.adapt_field), 'name');
+    const row: T_table = { name };
+    const q_fields = await this.query<T_field[]>(`desc \`${name}\``);
+    row.fields = keyBy(q_fields.rows.map(Database_mysql.adapt_field), 'name');
     return row;
   }
 
@@ -180,14 +141,7 @@ export class Database_postgres extends Connection_postgres implements T_database
    * @param name
    */
   async table_list_names(): Promise<string[]> {
-    const r = await this.query<T_table>(`
-      select c.relname as name 
-        from pg_catalog.pg_class c 
-          left join pg_catalog.pg_namespace n on n.oid = c.relnamespace 
-          where pg_catalog.pg_table_is_visible(c.oid)
-            and c.relkind = 'r'
-            and relname not like 'pg_%'`);
-
+    const r = await this.query<T_table>(`show tables`);
     return r.rows.map(it => it.name);
   }
 
@@ -220,7 +174,7 @@ export class Database_postgres extends Connection_postgres implements T_database
    * @param table
    */
   async table_drop(table: string) {
-    await this.query(e(`drop table if exists "%I"`, table));
+    await this.query(`drop table if exists ??`, table);
   }
 
   /**

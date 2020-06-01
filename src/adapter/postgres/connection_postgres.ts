@@ -1,7 +1,7 @@
 import * as events from 'events';
 import { cloneDeep, merge } from 'lodash';
 import { Pool, PoolClient, PoolConfig, QueryConfig } from 'pg';
-import { IN_query, N_db_type, T_config_connection, T_connection, T_opt_log, T_result } from '../../rds/connection';
+import { Connection, IN_query, N_db_type, T_config_connection, T_connection, T_opt_log, T_result } from '../../rds/connection';
 import { T_row_database } from '../../type';
 import { key_replace } from '../../util/obj';
 
@@ -13,14 +13,7 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
   /**
    * Default configuration as a base to merge
    */
-  static def: T_config_connection_postgres = {
-    dialect: N_db_type.postgres,
-    host: env.dbface_type,
-    port: +env.dbface_port!,
-    user: env.dbface_user,
-    password: env.dbface_password,
-    uri: env.dbface_uri,
-  };
+  static def: T_config_connection_postgres = merge(Connection.def, { dialect: N_db_type.postgres }) as T_config_connection_postgres;
 
   pool!: Pool;
   client!: PoolClient;
@@ -55,22 +48,23 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
   }
 
   set_config(config: T_config_connection): void {
-    const c: T_config_connection = this.config = merge((this.constructor as typeof Connection_postgres).def, config);
+    this.config = merge((this.constructor as typeof Connection_postgres).def, config);
     this.adapt_config();
   }
 
   adapt_config(): void {
     const copy: any = cloneDeep(this.config);
     delete copy.log;
-    delete copy.migration;
-    delete copy.system;
     delete copy.dialect;
+    delete copy.state;
 
     this.raw_config = copy;
     key_replace(this.raw_config, { uri: 'connectionString' });
   }
 
-  validate_config(): void {}
+  validate_config(): void {
+    Connection.validate_config(this.config);
+  }
 
   async ping() {
     return !! await this.server_version();

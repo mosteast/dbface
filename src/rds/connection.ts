@@ -1,13 +1,11 @@
 import * as events from 'events';
 import { cloneDeep, merge } from 'lodash';
 import { Pool as Mysql_pool } from 'mysql2/promise';
-import { resolve } from 'path';
 import { Pool as Pg_pool, PoolConfig } from 'pg';
-import { pwd } from 'shelljs';
 import { Connection_mysql } from '../adapter/mysql/connection_mysql';
 import { Connection_postgres } from '../adapter/postgres/connection_postgres';
 import { Invalid_connection_config } from '../error/invalid_connection_config';
-import { T_row_database, table_state } from '../type';
+import { T_row_database } from '../type';
 
 export enum N_db_type {mysql = 'mysql', postgres = 'postgres'}
 
@@ -20,25 +18,26 @@ export class Connection extends events.EventEmitter implements T_connection {
   /**
    * Default configuration as a base to merge
    */
-  static def: T_config_connection | any = {
-    type: env.dbface_type,
-    host: env.dbface_type,
-    port: env.dbface_port,
+  static def: T_config_connection = {
+    host: env.dbface_host,
+    port: +env.dbface_port!,
     user: env.dbface_user,
     password: env.dbface_password,
     uri: env.dbface_uri,
-    migration: {
-      file_dir: resolve(pwd().toString(), 'database/migration'),
-      migration_file_suffix: '.m',
-    },
-    system: {
-      table_name: table_state,
-      ensure_database: true,
-    },
   };
 
   adapter!: Connection_mysql | Connection_postgres;
   raw_config!: T_raw_config;
+
+  static validate_config(config: T_config_connection) {
+    if (config.uri) {
+
+    } else {
+      if ( ! config.user || ! config.host || ! config.port) {
+        throw new Invalid_connection_config('Required configs: {user}, {host}, {port}');
+      }
+    }
+  }
 
   constructor(config?: T_config_connection) {
     super();
@@ -173,7 +172,7 @@ export interface T_state_config {
 }
 
 export interface T_config_connection {
-  dialect: N_db_type
+  dialect?: N_db_type
   host?: string
   port?: number
   user?: string

@@ -2,9 +2,8 @@ import * as events from 'events';
 import { cloneDeep, merge } from 'lodash';
 import { QueryOptions } from 'mysql2';
 import { createPool, Pool, PoolOptions } from 'mysql2/promise';
-import { IN_query, N_db_type, T_config_connection, T_connection, T_opt_log, T_result } from '../../rds/connection';
+import { Connection, IN_query, N_db_type, T_config_connection, T_connection, T_opt_log, T_result } from '../../rds/connection';
 import { T_row_database } from '../../type';
-import { key_replace } from '../../util/obj';
 
 export interface T_config_connection_mysql extends T_config_connection {
   dialect: N_db_type.mysql
@@ -16,14 +15,7 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
   /**
    * Default configuration as a base to merge
    */
-  static def: T_config_connection_mysql = {
-    dialect: N_db_type.mysql,
-    host: env.dbface_type,
-    port: +env.dbface_port!,
-    user: env.dbface_user,
-    password: env.dbface_password,
-    uri: env.dbface_uri,
-  };
+  static def: T_config_connection_mysql = merge(Connection.def, { dialect: N_db_type.mysql }) as T_config_connection_mysql;
 
   pool!: Pool;
   raw_config!: PoolOptions;
@@ -55,40 +47,24 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
   }
 
   set_config(config: T_config_connection): void {
-    const c: T_config_connection = this.config = merge((this.constructor as typeof Connection_mysql).def, config);
-
-    if (c.log) {
-      switch (typeof c.log) {
-        case 'function':
-          c.log = { logger: c.log };
-          break;
-        case 'boolean':
-          c.log = {};
-          break;
-      }
-
-      if ( ! c.log?.logger) {
-        c.log.logger = (...args: any) => console.info('●', ...args);
-      }
-    } else {
-      c.log = false;
-    }
-
+    this.config = merge((this.constructor as typeof Connection_mysql).def, config);
     this.adapt_config();
+    console.log(this.raw_config);
   }
 
   adapt_config(): void {
     const copy: any = cloneDeep(this.config);
     delete copy.log;
-    delete copy.migration;
-    delete copy.system;
     delete copy.dialect;
+    delete copy.state;
 
     this.raw_config = copy;
-    // key_replace(this.raw_config, { uri: 'connectionString', username: 'user' });
+    // key_replace(this.raw_config, { uri: 'connectionString' });
   }
 
-  validate_config(): void {}
+  validate_config(): void {
+    Connection.validate_config(this.config);
+  }
 
   async ping() {
     return !! await this.server_version();
@@ -96,7 +72,7 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
 
   async server_version(): Promise<string> {
     const r: any = await this.query('select version() as version');
-    return r[0][0].version;
+    return r.rows[0].version;
   }
 
   async database_create(name: string): Promise<T_row_database> {
@@ -119,7 +95,7 @@ from information_schema.schemata`.trim());
 select schema_name as \`name\`, default_character_set_name as \`encoding\`, default_collation_name as \`collate\`
 from information_schema.schemata
 where schema_name = ?`.trim(), [ name ]);
-    return r[0][0];
+    return r.rows[0];
   }
 
   async database_ensure(name: string): Promise<T_row_database> {
@@ -142,7 +118,7 @@ where schema_name = ?`.trim(), [ name ]);
     }
 
     const r = await this.pool.query({ sql: opt.sql, values: opt.params } as QueryOptions);
-    return key_replace<T_result<T>>(r, { rowCount: 'count' });
+    return { rows: r[0] };
   }
 
   log({ sql, params }: IN_query) {
