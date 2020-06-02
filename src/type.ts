@@ -162,11 +162,22 @@ export interface T_config_database extends T_config_connection {
   state?: T_state_config & { ensure_database?: boolean }
 }
 
+export interface T_database_structure {
+  table: { [name: string]: T_table }
+}
+
 export interface T_database extends T_connection {
+  /**
+   * Get database structure, which contains all the tables and fields info
+   */
+  get_structure(): T_database_structure
+
   /**
    * Create necessary system table and data
    */
-  state_init(): Promise<void>
+  state_init
+
+  (): Promise<void>
 
   /**
    * Delete system table and data
