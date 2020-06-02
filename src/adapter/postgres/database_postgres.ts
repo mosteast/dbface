@@ -6,7 +6,7 @@ import { Invalid_argument } from '../../error/invalid_argument';
 import { Invalid_state } from '../../error/invalid_state';
 import { def_database_postgres } from '../../rds/constant/defaults';
 import { database_validate_config } from '../../rds/utility/config';
-import { IN_migration_run, migration_log_, N_dialect, T_config_database, T_database, T_database_structure, T_field, T_migration_module, T_table } from '../../type';
+import { IN_migration_run, migration_log_, N_dialect, T_config_database, T_database, T_database_meta, T_field, T_migration_module, T_table } from '../../type';
 import { key_replace } from '../../util/obj';
 import { Connection_postgres } from './connection_postgres';
 
@@ -20,6 +20,7 @@ export interface T_config_database_postgres extends T_config_database {
  * Connection with selected database
  */
 export class Database_postgres extends Connection_postgres implements T_database {
+  meta!: T_database_meta;
 
   /**
    * Default configuration as a base to merge
@@ -34,8 +35,12 @@ export class Database_postgres extends Connection_postgres implements T_database
     return f;
   }
 
-  async inspect(): Promise<T_database_structure> {
-    const r: T_database_structure = {
+  async refresh_meta(): Promise<T_database_meta> {
+    return this.meta = await this.inspect();
+  }
+
+  async inspect(): Promise<T_database_meta> {
+    const r: T_database_meta = {
       name: this.get_config().database,
       table: keyBy<T_table>(await this.table_list(), 'name'),
     };

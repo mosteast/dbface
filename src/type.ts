@@ -162,18 +162,28 @@ export interface T_config_database extends T_config_connection {
   state?: T_state_config & { ensure_database?: boolean }
 }
 
-export interface T_database_structure {
+export interface T_database_meta {
   name?: string
   table?: { [name: string]: T_table }
 }
 
 export interface T_database extends T_connection {
+  meta: T_database_meta
+
+  /**
+   * Get database config
+   */
   get_config(): T_config_database
+
+  /**
+   * Refresh database meta info
+   */
+  refresh_meta(): Promise<T_database_meta>
 
   /**
    * Get database structure, which contains info about database, all the tables and fields
    */
-  inspect(): Promise<T_database_structure>
+  inspect(): Promise<T_database_meta>
 
   /**
    * Create necessary system table and data

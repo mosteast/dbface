@@ -1,6 +1,6 @@
 import { merge } from 'lodash';
 import { Invalid_connection_config } from '../error/invalid_connection_config';
-import { N_dialect, T_config_connection, T_config_database, T_database, T_database_structure, T_table } from '../type';
+import { N_dialect, T_config_connection, T_config_database, T_database, T_database_meta, T_table } from '../type';
 import { Connection } from './connection';
 import { def_database } from './constant/defaults';
 
@@ -8,11 +8,21 @@ import { def_database } from './constant/defaults';
  * Connection with selected database
  */
 export class Database extends Connection implements T_database {
+  meta!: T_database_meta;
+
   pool?: import('pg').Pool | import('mysql2/promise').Pool | undefined;
   config!: T_config_database;
   adapter!: T_database;
 
-  async inspect(): Promise<T_database_structure> {
+  async refresh_meta(): Promise<T_database_meta> {
+    return this.meta = await this.adapter.refresh_meta();
+  }
+
+  get_config(): T_config_database {
+    return super.get_config() as T_config_database;
+  }
+
+  async inspect(): Promise<T_database_meta> {
     return this.adapter.inspect();
   }
 
