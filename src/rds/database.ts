@@ -1,6 +1,4 @@
 import { merge } from 'lodash';
-import { Database_mysql } from '../adapter/mysql/database_mysql';
-import { Database_postgres } from '../adapter/postgres/database_postgres';
 import { Invalid_connection_config } from '../error/invalid_connection_config';
 import { N_dialect, T_config_connection, T_config_database, T_database, T_table } from '../type';
 import { Connection } from './connection';
@@ -31,10 +29,12 @@ export class Database extends Connection implements T_database {
     let con: T_database;
     switch (dialect) {
       case N_dialect.mysql:
-        con = new Database_mysql(config);
+        const Mysql = require('../adapter/mysql/database_mysql').Database_mysql;
+        con = new Mysql(config);
         break;
       case N_dialect.postgres:
-        con = new Database_postgres(config);
+        const Postgres = require('../adapter/postgres/database_postgres').Database_postgres;
+        con = new Postgres(config);
         break;
       default:
         throw new Invalid_connection_config(`Invalid dialect: "${dialect}"`);
