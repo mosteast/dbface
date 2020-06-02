@@ -1,6 +1,6 @@
 import { merge } from 'lodash';
 import { Invalid_connection_config } from '../error/invalid_connection_config';
-import { N_dialect, T_config_connection, T_config_database, T_database, T_table } from '../type';
+import { N_dialect, T_config_connection, T_config_database, T_database, T_database_structure, T_table } from '../type';
 import { Connection } from './connection';
 import { def_database } from './constant/defaults';
 
@@ -8,9 +8,13 @@ import { def_database } from './constant/defaults';
  * Connection with selected database
  */
 export class Database extends Connection implements T_database {
+  pool?: import('pg').Pool | import('mysql2/promise').Pool | undefined;
   config!: T_config_database;
-
   adapter!: T_database;
+
+  async inspect(): Promise<T_database_structure> {
+    return this.adapter.inspect();
+  }
 
   /**
    * Validate database configurations
@@ -144,5 +148,6 @@ export class Database extends Connection implements T_database {
   table_list_names(): Promise<string[]> {
     return this.adapter.table_list_names();
   }
+
 }
 

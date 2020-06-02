@@ -6,7 +6,7 @@ import { Invalid_argument } from '../../error/invalid_argument';
 import { Invalid_state } from '../../error/invalid_state';
 import { def_database_postgres } from '../../rds/constant/defaults';
 import { database_validate_config } from '../../rds/utility/config';
-import { IN_migration_run, migration_log_, N_dialect, T_config_database, T_database, T_field, T_migration_module, T_table } from '../../type';
+import { IN_migration_run, migration_log_, N_dialect, T_config_database, T_database, T_database_structure, T_field, T_migration_module, T_table } from '../../type';
 import { key_replace } from '../../util/obj';
 import { Connection_postgres } from './connection_postgres';
 
@@ -34,6 +34,14 @@ export class Database_postgres extends Connection_postgres implements T_database
     return f;
   }
 
+  async inspect(): Promise<T_database_structure> {
+    const r: T_database_structure = {
+      name: this.get_config().database,
+      table: keyBy<T_table>(await this.table_list(), 'name'),
+    };
+    return r;
+  }
+
   validate_config() {
     super.validate_config();
     database_validate_config(this.config);
@@ -46,6 +54,10 @@ export class Database_postgres extends Connection_postgres implements T_database
 
     this.raw_config = copy;
     key_replace(this.raw_config, { uri: 'connectionString' });
+  }
+
+  get_config(): T_config_database_postgres {
+    return super.get_config() as T_config_database_postgres;
   }
 
   async state_get<T = any>(key: string): Promise<T | undefined> {
@@ -337,4 +349,5 @@ export class Database_postgres extends Connection_postgres implements T_database
 
     return r;
   }
+
 }

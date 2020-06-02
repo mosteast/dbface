@@ -163,21 +163,22 @@ export interface T_config_database extends T_config_connection {
 }
 
 export interface T_database_structure {
-  table: { [name: string]: T_table }
+  name?: string
+  table?: { [name: string]: T_table }
 }
 
 export interface T_database extends T_connection {
+  get_config(): T_config_database
+
   /**
-   * Get database structure, which contains all the tables and fields info
+   * Get database structure, which contains info about database, all the tables and fields
    */
-  get_structure(): T_database_structure
+  inspect(): Promise<T_database_structure>
 
   /**
    * Create necessary system table and data
    */
-  state_init
-
-  (): Promise<void>
+  state_init(): Promise<void>
 
   /**
    * Delete system table and data

@@ -1,7 +1,7 @@
 import * as events from 'events';
 import { cloneDeep, merge, pick } from 'lodash';
 import { Pool, PoolClient, PoolConfig, QueryConfig } from 'pg';
-import { Connection} from '../../rds/connection';
+import { Connection } from '../../rds/connection';
 import { def_connection_postgres } from '../../rds/constant/defaults';
 import { connection_validate_config } from '../../rds/utility/config';
 import { N_dialect, T_config_connection, T_connection, T_opt_query, T_result, T_row_database } from '../../type';
@@ -44,7 +44,7 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
     await this.pool.end();
   }
 
-  get_config(): T_config_connection {
+  get_config<T extends T_config_connection_postgres = T_config_connection_postgres>(): T_config_connection_postgres {
     return this.config;
   }
 

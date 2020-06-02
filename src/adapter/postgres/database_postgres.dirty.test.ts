@@ -155,3 +155,12 @@ it('migration_run', async () => {
   expect(r4?.fields!.a1).toBeFalsy();
   expect(await db.table_pick('b')).toBeTruthy();
 });
+
+it('inspect', async () => {
+  await db.table_create_test('a');
+  await db.table_create_test('b');
+  const r = await db.inspect();
+  expect(r.name).toBe(db.get_config().database);
+  expect(r.table?.a).toBeTruthy();
+  expect(r.table?.b).toBeTruthy();
+});

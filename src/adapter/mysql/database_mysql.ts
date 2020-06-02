@@ -6,7 +6,7 @@ import { Invalid_argument } from '../../error/invalid_argument';
 import { Invalid_state } from '../../error/invalid_state';
 import { def_database_mysql } from '../../rds/constant/defaults';
 import { database_validate_config } from '../../rds/utility/config';
-import { IN_migration_run, migration_log_, N_dialect, T_config_database, T_database, T_field, T_migration_module, T_table } from '../../type';
+import { IN_migration_run, migration_log_, N_dialect, T_config_database, T_database, T_database_structure, T_field, T_migration_module, T_table } from '../../type';
 import { key_replace } from '../../util/obj';
 import { Connection_mysql } from './connection_mysql';
 
@@ -30,6 +30,18 @@ export class Database_mysql extends Connection_mysql implements T_database {
     const f: T_field | any = key_replace(field_like, { Field: 'name', Type: 'type', Default: 'default', Extra: 'Extra', Null: 'nullable', Key: 'key' });
     f.nullable = f.nullable === 'YES' ? true : false;
     return f;
+  }
+
+  async inspect(): Promise<T_database_structure> {
+    const r: T_database_structure = {
+      name: this.get_config().database,
+      table: keyBy<T_table>(await this.table_list(), 'name'),
+    };
+    return r;
+  }
+
+  get_config(): T_config_database_mysql {
+    return super.get_config() as T_config_database_mysql;
   }
 
   validate_config() {
@@ -294,4 +306,5 @@ export class Database_mysql extends Connection_mysql implements T_database {
 
     return r;
   }
+
 }

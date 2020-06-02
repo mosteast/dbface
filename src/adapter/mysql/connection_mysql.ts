@@ -2,7 +2,7 @@ import * as events from 'events';
 import { cloneDeep, merge, pick } from 'lodash';
 import { QueryOptions } from 'mysql2';
 import { createPool, Pool, PoolOptions } from 'mysql2/promise';
-import { Connection} from '../../rds/connection';
+import { Connection } from '../../rds/connection';
 import { def_connection_mysql } from '../../rds/constant/defaults';
 import { connection_validate_config } from '../../rds/utility/config';
 import { N_dialect, T_config_connection, T_connection, T_opt_query, T_result, T_row_database } from '../../type';
