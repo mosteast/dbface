@@ -1,7 +1,5 @@
 import * as events from 'events';
 import { cloneDeep, merge } from 'lodash';
-import { Connection_mysql } from '../adapter/mysql/connection_mysql';
-import { Connection_postgres } from '../adapter/postgres/connection_postgres';
 import { Invalid_connection_config } from '../error/invalid_connection_config';
 import { N_dialect, T_config_connection, T_connection, T_opt_log, T_opt_query, T_raw_config, T_result, T_row_database } from '../type';
 import { def_connection } from './constant/defaults';
@@ -53,10 +51,12 @@ export class Connection extends events.EventEmitter implements T_connection {
     let con;
     switch (dialect) {
       case N_dialect.mysql:
-        con = new Connection_mysql(config);
+        const Mysql = require('../adapter/mysql/connection_mysql').Connection_mysql;
+        con = new Mysql(config);
         break;
       case N_dialect.postgres:
-        con = new Connection_postgres(config);
+        const Postgres = require('../adapter/postgres/connection_postgres').Connection_postgres;
+        con = new Postgres(config);
         break;
       default:
         throw new Invalid_connection_config(`Invalid dialect: "${dialect}"`);
