@@ -100,8 +100,8 @@ export class Database extends Connection implements T_database {
   /**
    * Run migration
    */
-  async migration_run(step: number = 0) {
-    return this.adapter.migration_run(step);
+  async migration_go(step: number = 0) {
+    return this.adapter.migration_go(step);
   }
 
   /**

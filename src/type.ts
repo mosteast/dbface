@@ -270,9 +270,9 @@ export interface T_database extends T_connection {
   migration_log(): Promise<number[] | undefined>
 
   /**
-   * Run migration
+   * Run migration of n steps
    */
-  migration_run(step?: number): Promise<void>
+  migration_go(step?: number): Promise<void>
 
   /**
    * List all migration file names

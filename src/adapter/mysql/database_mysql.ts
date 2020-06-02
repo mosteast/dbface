@@ -224,9 +224,9 @@ export class Database_mysql extends Connection_mysql implements T_database {
   /**
    * Run migration
    */
-  async migration_run(step?: number): Promise<void>
-  async migration_run(opt?: IN_migration_run): Promise<void>
-  async migration_run(a?: any): Promise<void> {
+  async migration_go(step?: number): Promise<void>
+  async migration_go(opt?: IN_migration_run): Promise<void>
+  async migration_go(a?: any): Promise<void> {
     let opt: IN_migration_run = { step: 0 };
 
     if (a) {
