@@ -6,7 +6,7 @@ import { Invalid_argument } from '../../error/invalid_argument';
 import { Invalid_state } from '../../error/invalid_state';
 import { def_database_mysql } from '../../rds/constant/defaults';
 import { database_validate_config } from '../../rds/utility/config';
-import { IN_migration_run, migration_log_, N_dialect, T_config_database, T_database, T_database_meta, T_field, T_migration_module, T_table } from '../../type';
+import { IN_migration_run, migration_log_, N_dialect, T_column, T_config_database, T_database, T_database_meta, T_migration_module, T_table } from '../../type';
 import { key_replace } from '../../util/obj';
 import { Connection_mysql } from './connection_mysql';
 
@@ -27,8 +27,8 @@ export class Database_mysql extends Connection_mysql implements T_database {
 
   config!: T_config_database_mysql;
 
-  static adapt_field(field_like: T_field | any): T_field {
-    const f: T_field | any = key_replace(field_like, { Field: 'name', Type: 'type', Default: 'default', Extra: 'Extra', Null: 'nullable', Key: 'key' });
+  static adapt_column(column_like: T_column | any): T_column {
+    const f: T_column | any = key_replace(column_like, { Field: 'name', Type: 'type', Default: 'default', Extra: 'Extra', Null: 'nullable', Key: 'key' });
     f.nullable = f.nullable === 'YES' ? true : false;
     return f;
   }
@@ -58,7 +58,7 @@ export class Database_mysql extends Connection_mysql implements T_database {
     super.adapt_config();
     const parent: any = cloneDeep(this.raw_config);
     const conf = pick(cloneDeep(this.config), [ 'database' ] as (keyof T_config_database_mysql)[]);
-    this.raw_config = merge(parent, conf);
+    this.raw_config = merge({}, parent, conf);
   }
 
   async state_get<T = any>(key: string): Promise<T | undefined> {
@@ -144,8 +144,8 @@ export class Database_mysql extends Connection_mysql implements T_database {
   async table_pick(name: string): Promise<T_table | null> {
     const row: T_table = { name };
     try {
-      const q_fields = await this.query<T_field[]>(`desc ??`, [ name ]);
-      row.fields = keyBy(q_fields.rows.map(Database_mysql.adapt_field), 'name');
+      const q_columns = await this.query<T_column[]>(`desc ??`, [ name ]);
+      row.columns = keyBy(q_columns.rows.map(Database_mysql.adapt_column), 'name');
       return row;
     } catch (e) {
       if (e.message.includes('doesn\'t exist')) {

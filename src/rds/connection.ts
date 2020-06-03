@@ -47,7 +47,7 @@ export class Connection extends events.EventEmitter implements T_connection {
    * @param config
    */
   set_config(config: T_config_connection) {
-    const { dialect } = config = merge(def_connection, config);
+    const { dialect } = config = merge({}, def_connection, config);
     let con;
     switch (dialect) {
       case N_dialect.mysql:

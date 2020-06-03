@@ -181,7 +181,7 @@ export interface T_database extends T_connection {
   refresh_meta(): Promise<T_database_meta>
 
   /**
-   * Get database structure, which contains info about database, all the tables and fields
+   * Get database structure, which contains info about database, all the tables and columns
    */
   inspect(): Promise<T_database_meta>
 
@@ -231,7 +231,7 @@ export interface T_database extends T_connection {
   table_count(): Promise<number>
 
   /**
-   * Create testing table with preset fields
+   * Create testing table with preset columns
    * @param name
    */
   table_create_test(name: string): Promise<void>
@@ -295,20 +295,73 @@ export interface T_database extends T_connection {
   migration_get_files(ids: number[]): Promise<string[]>
 }
 
-export interface T_table {
+export interface T_table<Model = any> {
   name: string
-  fields?: T_field_map
-  primaries?: { [field: string]: T_pk[] }
+  /**
+   * Column definition
+   */
+  columns?: T_column_map
+  /**
+   * Primary key
+   */
+  pk?: T_key_primary
+
+  /**
+   * Unique keys
+   */
+  uks?: T_key_unique_map
+
+  /**
+   * Foreign keys
+   */
+  fks?: T_key_foreign_map
 }
 
-export interface T_pk {
-  key?: string
-  field: string
+export interface T_key_primary {
+  /**
+   * key name
+   */
+  key: string
+  columns: T_columns
 }
 
-export interface T_field_map {[name: string]: T_field}
+export interface T_key_foreign_map {
+  [key_name: string]: T_key_foreign
+}
 
-export interface T_field_common {
+export interface T_key_foreign<Source = any, Target = any> {
+  /**
+   * Key name
+   */
+  key: string
+  /**
+   * Foreign source (e.g. order.user_id)
+   */
+  source: { column: keyof Source },
+
+  /**
+   * Foreign target (e.g. user.id)
+   */
+  target: { table: string, column: keyof Target },
+}
+
+export interface T_key_unique {
+  /**
+   * Key name
+   */
+  key: string
+  columns: T_columns
+}
+
+export interface T_key_unique_map<Model = any> {
+  [key_name: string]: T_key_unique
+}
+
+export type T_columns<Model = any> = (keyof Model)[]
+
+export interface T_column_map {[name: string]: T_column}
+
+export interface T_column_common {
   /**
    * Indicates if this column is a primary key.
    * Same can be achieved when @PrimaryColumn decorator is used.
@@ -349,7 +402,7 @@ export interface T_field_common {
   transformer?: T_value_transformer | T_value_transformer[];
 }
 
-export interface T_field extends T_field_common {
+export interface T_column extends T_column_common {
   /**
    * Column type. Must be one of the value from the ColumnTypes class.
    */
@@ -372,45 +425,17 @@ export interface T_field extends T_field_common {
    * Indicates if column's value can be set to NULL.
    */
   nullable?: boolean;
-  /**
-   * Indicates if column value is not updated by "save" operation.
-   * It means you'll be able to write this value only when you first time insert the object.
-   * Default value is "false".
-   *
-   * @deprecated Please use the `update` option instead.  Careful, it takes
-   * the opposite value to readonly.
-   *
-   */
-  readonly?: boolean;
-  /**
-   * Indicates if column value is updated by "save" operation.
-   * If false, you'll be able to write this value only when you first time insert the object.
-   * Default value is "true".
-   */
-  update?: boolean;
-  /**
-   * Indicates if column is always selected by QueryBuilder and find operations.
-   * Default value is "true".
-   */
-  select?: boolean;
-  /**
-   * Indicates if column is inserted by default.
-   * Default value is "true".
-   */
-  insert?: boolean;
+
   /**
    * Default database value.
    */
   default?: any;
   /**
-   * ON UPDATE trigger. Works only for MySQL.
-   */
-  on_update?: string;
-  /**
    * Indicates if this column is a primary key.
    * Same can be achieved when @PrimaryColumn decorator is used.
    */
   primary?: boolean;
+
   /**
    * Specifies if column's value must be unique or not.
    */
@@ -429,11 +454,6 @@ export interface T_field extends T_field_common {
    * of digits to the right of the decimal point and must not be greater than precision.
    */
   scale?: number;
-  /**
-   * Puts ZEROFILL attribute on to numeric column. Works only for MySQL.
-   * If you specify ZEROFILL for a numeric column, MySQL automatically adds the UNSIGNED attribute to this column
-   */
-  zerofill?: boolean;
   /**
    * Puts UNSIGNED attribute on to numeric column. Works only for MySQL.
    */
@@ -455,25 +475,25 @@ export interface T_field extends T_field_common {
    * Exact name of enum
    */
   enum_name?: string;
-  /**
-   * Return type of HSTORE column.
-   * Returns value as string or as object.
-   */
-  hstore_type?: 'object' | 'string';
-  /**
-   * Indicates if this column is an array.
-   * Can be simply set to true or array length can be specified.
-   * Supported only by postgres.
-   */
-  array?: boolean;
-  /**
-   * Spatial Feature Type (Geometry, Point, Polygon, etc.)
-   */
-  spatial_feature_type?: string;
-  /**
-   * SRID (Spatial Reference ID (EPSG code))
-   */
-  srid?: number;
+  // /**
+  //  * Return type of HSTORE column.
+  //  * Returns value as string or as object.
+  //  */
+  // hstore_type?: 'object' | 'string';
+  // /**
+  //  * Indicates if this column is an array.
+  //  * Can be simply set to true or array length can be specified.
+  //  * Supported only by postgres.
+  //  */
+  // array?: boolean;
+  // /**
+  //  * Spatial Feature Type (Geometry, Point, Polygon, etc.)
+  //  */
+  // spatial_feature_type?: string;
+  // /**
+  //  * SRID (Spatial Reference ID (EPSG code))
+  //  */
+  // srid?: number;
 }
 
 /**

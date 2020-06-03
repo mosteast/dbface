@@ -20,10 +20,10 @@ export const def_connection: T_config_connection = {
   uri: env.dbface_uri,
 };
 
-export const def_connection_mysql: T_config_connection_mysql = merge(def_connection, { dialect: N_dialect.mysql } as T_config_connection_mysql);
-export const def_connection_postgres: T_config_connection_postgres = merge(def_connection, { dialect: N_dialect.postgres } as T_config_connection_postgres);
+export const def_connection_mysql: T_config_connection_mysql = merge({}, def_connection, { dialect: N_dialect.mysql } as T_config_connection_mysql);
+export const def_connection_postgres: T_config_connection_postgres = merge({}, def_connection, { dialect: N_dialect.postgres } as T_config_connection_postgres);
 
-export const def_database: T_config_database = merge(def_connection, {
+export const def_database: T_config_database = merge({}, def_connection, {
   migration: {
     file_dir: resolve(pwd().toString(), 'migration'),
     migration_file_suffix: '.m',
@@ -34,6 +34,6 @@ export const def_database: T_config_database = merge(def_connection, {
   },
 } as T_config_database);
 
-export const def_database_mysql: T_config_database_mysql = merge(def_database, { dialect: N_dialect.mysql } as T_config_database_mysql);
-export const def_database_postgres: T_config_database_postgres = merge(def_database, { dialect: N_dialect.postgres } as T_config_database_postgres);
+export const def_database_mysql: T_config_database_mysql = merge({}, def_database, { dialect: N_dialect.mysql } as T_config_database_mysql);
+export const def_database_postgres: T_config_database_postgres = merge({}, def_database, { dialect: N_dialect.postgres } as T_config_database_postgres);
 

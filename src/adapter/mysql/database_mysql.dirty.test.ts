@@ -85,7 +85,7 @@ it('table_pick', async () => {
   await db.table_create_test('a');
   const row = await db.table_pick('a');
   console.log(row);
-  expect(keys(row?.fields)).toBeTruthy();
+  expect(keys(row?.columns)).toBeTruthy();
   await db.table_drop('a');
 });
 
@@ -134,24 +134,24 @@ it('migration_run', async () => {
   await db.migration_go();
   for (const it of tbs) { expect(await db.table_pick(it)).toBeTruthy(); }
   const r = await db.table_pick('a');
-  expect(r?.fields!.a1).toBeTruthy();
+  expect(r?.columns!.a1).toBeTruthy();
   expect(await db.migration_log()).toEqual([ 1, 2, 3 ]);
 
   // Backward
   await db.migration_go(-1);
   const r2 = await db.table_pick('a');
-  expect(r2?.fields!.a1).toBeFalsy();
+  expect(r2?.columns!.a1).toBeFalsy();
   expect(await db.migration_log()).toEqual([ 1, 2 ]);
 
   await db.migration_go(1);
   const r3 = await db.table_pick('a');
-  expect(r3?.fields!.a1).toBeTruthy();
+  expect(r3?.columns!.a1).toBeTruthy();
   expect(await db.migration_log()).toEqual([ 1, 2, 3 ]);
 
   await db.migration_go(-2);
   const r4 = await db.table_pick('a');
-  expect(r4?.fields!.id).toBeTruthy();
-  expect(r4?.fields!.a1).toBeFalsy();
+  expect(r4?.columns!.id).toBeTruthy();
+  expect(r4?.columns!.a1).toBeFalsy();
   expect(await db.table_pick('b')).toBeTruthy();
 });
 

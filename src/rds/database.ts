@@ -39,7 +39,7 @@ export class Database extends Connection implements T_database {
    * @param config
    */
   set_config(config: T_config_connection) {
-    const { dialect } = config = merge(def_database, config);
+    const { dialect } = config = merge({}, def_database, config);
     let con: T_database;
     switch (dialect) {
       case N_dialect.mysql:

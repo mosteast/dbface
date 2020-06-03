@@ -41,7 +41,7 @@ export class Connection_mysql extends events.EventEmitter implements T_connectio
   }
 
   set_config(config: T_config_connection): void {
-    this.config = merge((this.constructor as typeof Connection_mysql).def, config);
+    this.config = merge({}, (this.constructor as typeof Connection_mysql).def, config);
     this.adapt_config();
   }
 
@@ -98,7 +98,7 @@ where schema_name = ?`.trim(), [ name ]);
   async query<T = any, T_params = any>(a: any, b?: any, c?: any) {
     let opt: T_opt_query = {};
     if (typeof a === 'string') {
-      opt = merge(opt, c);
+      opt = merge({}, opt, c);
       opt.sql = a;
       opt.params = b;
     } else {

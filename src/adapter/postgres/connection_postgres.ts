@@ -49,7 +49,7 @@ export class Connection_postgres extends events.EventEmitter implements T_connec
   }
 
   set_config(config: T_config_connection): void {
-    this.config = merge((this.constructor as typeof Connection_postgres).def, config);
+    this.config = merge({}, (this.constructor as typeof Connection_postgres).def, config);
     this.adapt_config();
   }
 
@@ -126,7 +126,7 @@ limit 1`, [ name ]);
   async query<T = any, T_params = any>(a: any, b?: any, c?: any) {
     let opt: T_opt_query = {};
     if (typeof a === 'string') {
-      opt = merge(opt, c);
+      opt = merge({}, opt, c);
       opt.sql = a;
       opt.params = b;
     } else {

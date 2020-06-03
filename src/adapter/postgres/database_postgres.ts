@@ -6,7 +6,7 @@ import { Invalid_argument } from '../../error/invalid_argument';
 import { Invalid_state } from '../../error/invalid_state';
 import { def_database_postgres } from '../../rds/constant/defaults';
 import { database_validate_config } from '../../rds/utility/config';
-import { IN_migration_run, migration_log_, N_dialect, T_config_database, T_database, T_database_meta, T_field, T_migration_module, T_table } from '../../type';
+import { IN_migration_run, migration_log_, N_dialect, T_column, T_config_database, T_database, T_database_meta, T_migration_module, T_table } from '../../type';
 import { key_replace } from '../../util/obj';
 import { Connection_postgres } from './connection_postgres';
 
@@ -29,8 +29,8 @@ export class Database_postgres extends Connection_postgres implements T_database
 
   config!: T_config_database_postgres;
 
-  static adapt_field(field_like: T_field | any): T_field {
-    const f: T_field | any = key_replace(field_like, { field: 'name', null: 'nullable' });
+  static adapt_column(column_like: T_column | any): T_column {
+    const f: T_column | any = key_replace(column_like, { column: 'name', null: 'nullable' });
     f.nullable = f.nullable === 'yes' ? true : false;
     return f;
   }
@@ -167,8 +167,8 @@ export class Database_postgres extends Connection_postgres implements T_database
       return null;
     }
 
-    const q_fields = await this.query<T_field[]>(`
-      select a.attname                                             as field,
+    const q_columns = await this.query<T_column[]>(`
+      select a.attname                                             as column,
              t.typname || '(' || a.atttypmod || ')'                as type,
              case when a.attnotnull = 't' then 'yes' else 'no' end as null,
              case when r.contype = 'p' then 'pri' else '' end      as key,
@@ -188,7 +188,7 @@ export class Database_postgres extends Connection_postgres implements T_database
       
         order by a.attnum`, [ name ]);
 
-    row.fields = keyBy(q_fields.rows.map(Database_postgres.adapt_field), 'name');
+    row.columns = keyBy(q_columns.rows.map(Database_postgres.adapt_column), 'name');
     return row;
   }
 
