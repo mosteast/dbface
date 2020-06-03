@@ -297,8 +297,16 @@ export interface T_database extends T_connection {
 
 export interface T_table {
   name: string
-  fields?: { [name: string]: T_field }
+  fields?: T_field_map
+  primaries?: { [field: string]: T_pk[] }
 }
+
+export interface T_pk {
+  key?: string
+  field: string
+}
+
+export interface T_field_map {[name: string]: T_field}
 
 export interface T_field_common {
   /**
