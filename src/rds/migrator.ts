@@ -1,7 +1,13 @@
 import { merge } from 'lodash';
 import { T_column, T_column_map, T_table } from '../type';
+import { Database } from './database';
+
+const { dir_root } = require('../../root');
 
 export class Migrator {
+
+  config!: T_opt_migrator;
+
   /**
    * Diff two table structure
    * @param to - new
@@ -64,6 +70,41 @@ export class Migrator {
 
     return actions;
   }
+
+  constructor(config?: T_opt_migrator) {
+    if (config) { this.set_config(config); }
+  }
+
+  set_config(config: T_opt_migrator) {
+    this.config = config;
+  }
+
+  /**
+   * Generate migration file content
+   */
+  async generate(): Promise<string> {
+    const pkg = require(dir_root('package.json'));
+    // todo: incomplete code generation
+    // language=text
+    return `
+import {Database, T_migration_module} from '${pkg.name}'
+
+const migration: T_migration_module = {
+  async forward(database: Database): Promise<void> {
+    await database.query(\`create table if not exists a (id serial)\`);
+  },
+  async backward(database: Database): Promise<void> {
+    await database.database_drop('a');
+  },
+};
+
+module.exports = migration;`;
+  }
+}
+
+export interface T_opt_migrator {
+  database: Database,
+  metas: { [name: string]: T_table }
 }
 
 export type T_migrator_action_name =

@@ -30,3 +30,10 @@ it('diff', async () => {
   expect(a5.action).toBe('column_update_nullable');
   expect(a5.nullable).toBe(false);
 });
+
+it('generate', async () => {
+  const m = new Migrator();
+  const r = await m.generate();
+  expect(r).toBeTruthy();
+  expect(typeof r).toBe('string');
+});

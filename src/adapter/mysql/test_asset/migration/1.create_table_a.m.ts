@@ -1,4 +1,4 @@
-import { Database} from '../../../../rds/database';
+import { Database } from '../../../../rds/database';
 import { T_migration_module } from '../../../../type';
 
 const migration: T_migration_module = {
