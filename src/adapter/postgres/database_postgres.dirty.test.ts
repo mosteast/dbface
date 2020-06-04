@@ -18,7 +18,7 @@ const conf: T_config_database_postgres = {
   port: +e.postgres_port!,
   user: e.postgres_user,
   password: e.postgres_password,
-  // log: { log_params: true },
+  // log: { log_args: true },
   log: false,
   migration: {
     file_dir: resolve(__dirname, 'test_asset/migration'),
@@ -175,4 +175,10 @@ it('column_pick', async () => {
   expect(r.name).toBe('id');
   expect(r.type).toBe('integer');
   expect(r.nullable).toBe(false);
+  const r2 = await db.column_pick(t, 'int2_');
+  expect(r2.type).toBe('smallint');
+  const r3 = await db.column_pick(t, 'decimal_');
+  expect(r3.type).toBe('numeric');
+  expect(r3.type_args?.precision).toBe(10);
+  expect(r3.type_args?.scale).toBe(2);
 });

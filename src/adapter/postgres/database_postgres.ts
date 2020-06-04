@@ -234,15 +234,15 @@ export class Database_postgres extends Connection_postgres implements T_database
     return Postgres.adapt_column(it);
   }
 
-  column_create(table: string, structure: T_column): Promise<void> {
-    throw new Error('Method not implemented.');
+  async column_create(table: string, structure: T_column): Promise<void> {
+    await this.query(``);
   }
 
   column_rename(table: string, from: string, to: string): Promise<void> {
     throw new Error('Method not implemented.');
   }
 
-  column_update_type(table: string, name: string, type: import('../../type').T_column_type, type_params?: any): Promise<void> {
+  column_update_type(table: string, name: string, type: import('../../type').T_column_type, type_args?: any): Promise<void> {
     throw new Error('Method not implemented.');
   }
 

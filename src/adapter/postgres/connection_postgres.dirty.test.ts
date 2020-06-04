@@ -13,7 +13,7 @@ const conf: T_config_connection_postgres = {
   port: +e.postgres_port!,
   user: e.postgres_user,
   password: e.postgres_password,
-  log: { log_params: true },
+  log: { log_args: true },
 };
 
 let con: Connection_postgres;

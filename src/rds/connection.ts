@@ -12,7 +12,7 @@ export class Connection extends events.EventEmitter implements T_connection {
   adapter!: T_connection;
   raw_config!: T_raw_config;
 
-  static log(ins: T_connection, { sql, params, log }: T_opt_query) {
+  static log(ins: T_connection, { sql, args, log }: T_opt_query) {
     log = log || ins.config?.log as T_opt_log;
     if (log) {
       switch (typeof log) {
@@ -29,8 +29,8 @@ export class Connection extends events.EventEmitter implements T_connection {
       }
 
       let param_part = '';
-      if (log.log_params) {
-        param_part = '\n-- ' + JSON.stringify(params || []);
+      if (log.log_args) {
+        param_part = '\n-- ' + JSON.stringify(args || []);
       }
 
       log.logger(sql?.trim(), param_part);
@@ -123,8 +123,8 @@ export class Connection extends events.EventEmitter implements T_connection {
     await this.adapter.close();
   }
 
-  async query<T = any, T_params = any>(opt: T_opt_query): Promise<T_result<T>>
-  async query<T = any, T_params = any>(sql: string, params?: T_params, opt?: T_opt_query): Promise<T_result<T>>
+  async query<T = any, T_args = any>(opt: T_opt_query): Promise<T_result<T>>
+  async query<T = any, T_args = any>(sql: string, args?: T_args, opt?: T_opt_query): Promise<T_result<T>>
   async query(a: any, b?: any, c?: any) {
     return this.adapter.query(a, b, c);
   }

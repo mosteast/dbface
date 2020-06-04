@@ -93,20 +93,20 @@ where schema_name = ?`.trim(), [ name ]);
     return await this.database_create(name);
   }
 
-  async query<T = any, T_params = any>(opt: T_opt_query<T_params>): Promise<T_result<T>>;
-  async query<T = any, T_params = any>(sql: string, params?: T_params, opt?: T_opt_query<T_params>): Promise<T_result<T>>
-  async query<T = any, T_params = any>(a: any, b?: any, c?: any) {
+  async query<T = any, T_args = any>(opt: T_opt_query<T_args>): Promise<T_result<T>>;
+  async query<T = any, T_args = any>(sql: string, args?: T_args, opt?: T_opt_query<T_args>): Promise<T_result<T>>
+  async query<T = any, T_args = any>(a: any, b?: any, c?: any) {
     let opt: T_opt_query = {};
     if (typeof a === 'string') {
       opt = merge({}, opt, c);
       opt.sql = a;
-      opt.params = b;
+      opt.args = b;
     } else {
       opt = a;
     }
 
     Connection.log(this, opt);
-    const r = await this.pool.query({ sql: opt.sql, values: opt.params } as QueryOptions);
+    const r = await this.pool.query({ sql: opt.sql, values: opt.args } as QueryOptions);
     return { rows: r[0] };
   }
 

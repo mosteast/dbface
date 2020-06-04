@@ -176,9 +176,9 @@ export interface T_migrator_action_column_update_type extends T_migrator_action_
    */
   to: string
   // /**
-  //  * Type params
+  //  * Type args
   //  */
-  // params?: any[]
+  // args?: any[]
 }
 
 export interface T_migrator_action_column_update_nullable extends T_migrator_action_column {

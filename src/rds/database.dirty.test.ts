@@ -18,7 +18,7 @@ const conf: T_config_database = {
   port: +e.postgres_port!,
   user: e.postgres_user,
   password: e.postgres_password,
-  // log: { log_params: true },
+  // log: { log_args: true },
   log: false,
   migration: {
     file_dir: resolve(__dirname, 'test_asset/migration'),

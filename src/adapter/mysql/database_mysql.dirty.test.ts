@@ -17,7 +17,7 @@ const conf: T_config_database_mysql = {
   port: +e.mysql_port!,
   user: e.mysql_user,
   password: e.mysql_password,
-  log: { log_params: true },
+  log: { log_args: true },
   // log: false,
   migration: {
     file_dir: resolve(__dirname, 'test_asset/migration'),

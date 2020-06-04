@@ -57,12 +57,12 @@ export interface T_config_connection {
 
 export interface T_opt_log {
   logger?: Function
-  log_params?: boolean
+  log_args?: boolean
 }
 
-export interface T_opt_query<T_params = any> {
+export interface T_opt_query<T_args = any> {
   sql?: string
-  params?: T_params
+  args?: T_args
   log?: boolean | Function | T_opt_log
 }
 
@@ -101,11 +101,11 @@ export interface T_connection {
   /**
    * Make a sql query
    * @param sql
-   * @param params
+   * @param args
    */
-  query<T = any, T_params = any>(opt: T_opt_query): Promise<T>
+  query<T = any, T_args = any>(opt: T_opt_query): Promise<T>
 
-  query<T = any, T_params = any>(sql: string, params?: T_params, opt?: T_opt_query): Promise<T>
+  query<T = any, T_args = any>(sql: string, args?: T_args, opt?: T_opt_query): Promise<T>
 
   /**
    * Kill connection by database
@@ -281,7 +281,7 @@ export interface T_database extends T_connection {
   /**
    * Rename a column
    */
-  column_update_type(table: string, name: string, type: T_column_type, type_params?: any): Promise<void>
+  column_update_type(table: string, name: string, type: T_column_type, type_args?: any): Promise<void>
 
   /**
    * Update not null constraint
@@ -437,30 +437,35 @@ export interface T_column_common {
   transformer?: T_value_transformer | T_value_transformer[];
 }
 
+export interface T_type_args_numeric {
+  precision?: number,
+  scale?: number,
+  unsigned?: number
+}
+
+export interface T_type_args_string {
+  length: number,
+  width?: number;
+}
+
 export interface T_column extends T_column_common {
   /**
    * Column type. Must be one of the value from the ColumnTypes class.
    */
   type?: T_column_type;
   /**
+   * Column type arguments
+   * e.g.: in "decimal(10, 2)" "10" and "2" are arguments
+   */
+  type_args?: T_type_args_string & T_type_args_numeric
+  /**
    * Column name in the database.
    */
   name?: string;
   /**
-   * Column type's length. Used only on some column types.
-   * For example type = "string" and length = "100" means that ORM will create a column with type varchar(100).
-   */
-  length?: string | number;
-  /**
-   * Column type's display width. Used only on some column types in MySQL.
-   * For example, INT(4) specifies an INT with a display width of four digits.
-   */
-  width?: number;
-  /**
    * Indicates if column's value can be set to NULL.
    */
   nullable?: boolean;
-
   /**
    * Default database value.
    */
@@ -470,7 +475,6 @@ export interface T_column extends T_column_common {
    * Same can be achieved when @PrimaryColumn decorator is used.
    */
   primary?: boolean;
-
   /**
    * Specifies if column's value must be unique or not.
    */
@@ -479,20 +483,6 @@ export interface T_column extends T_column_common {
    * Column comment. Not supported by all database types.
    */
   comment?: string;
-  /**
-   * The precision for a decimal (exact numeric) column (applies only for decimal column), which is the maximum
-   * number of digits that are stored for the values.
-   */
-  precision?: number | null;
-  /**
-   * The scale for a decimal (exact numeric) column (applies only for decimal column), which represents the number
-   * of digits to the right of the decimal point and must not be greater than precision.
-   */
-  scale?: number;
-  /**
-   * Puts UNSIGNED attribute on to numeric column. Works only for MySQL.
-   */
-  unsigned?: boolean;
   /**
    * Defines a column character set.
    * Not supported by all database types.
