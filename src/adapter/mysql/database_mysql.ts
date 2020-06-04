@@ -6,7 +6,7 @@ import { Invalid_argument } from '../../error/invalid_argument';
 import { Invalid_state } from '../../error/invalid_state';
 import { def_database_mysql } from '../../rds/constant/defaults';
 import { database_validate_config } from '../../rds/utility/config';
-import { IN_migration_run, migration_log_, N_dialect, T_column, T_config_database, T_database, T_database_meta, T_migration_module, T_table } from '../../type';
+import { IN_migration_run, migration_log_, N_dialect, T_column, T_column_type, T_config_database, T_database, T_database_meta, T_migration_module, T_table } from '../../type';
 import { key_replace } from '../../util/obj';
 import { Connection_mysql } from './connection_mysql';
 
@@ -207,6 +207,34 @@ export class Database_mysql extends Connection_mysql implements T_database {
     }
   }
 
+  column_create(table: string, structure: T_column): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
+  async column_pick(table: string, name: string): Promise<T_column> {
+    return {};
+  }
+
+  column_rename(table: string, from: string, to: string): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
+  column_update_default(table: string, name: string, def: any): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
+  column_update_nullable(table: string, name: string, nullable: boolean): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
+  column_update_type(table: string, name: string, type: T_column_type, type_args?: any): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
+  column_update_unique(table: string, name: string, unique: boolean): Promise<void> {
+    return Promise.resolve(undefined);
+  }
+
   async migration_list_all(): Promise<string[]> {
     const dir: string = this.get_config().migration?.file_dir as string;
     const suffix = this.get_config().migration?.migration_file_suffix;
@@ -311,4 +339,5 @@ export class Database_mysql extends Connection_mysql implements T_database {
 
     return r;
   }
+
 }
