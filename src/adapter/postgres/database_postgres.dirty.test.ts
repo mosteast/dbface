@@ -85,7 +85,6 @@ it('table_list/table_count', async () => {
 it('table_pick', async () => {
   await db.table_create_test(name);
   const row = await db.table_pick(name);
-  console.log(row);
   expect(keys(row?.columns)).toBeTruthy();
   await db.table_drop(name);
 });
@@ -167,4 +166,13 @@ it('inspect/refresh_meta', async () => {
   expect(db.meta).toBeFalsy();
   await db.refresh_meta();
   expect(db.meta).toBeTruthy();
+});
+
+it('column_pick', async () => {
+  const t = 'b';
+  await db.table_create_test(t);
+  const r = await db.column_pick(t, 'id');
+  expect(r.name).toBe('id');
+  expect(r.type).toBe('integer');
+  expect(r.nullable).toBe(false);
 });

@@ -264,6 +264,41 @@ export interface T_database extends T_connection {
   table_pick(name: string): Promise<T_table | null>
 
   /**
+   * Get one column info
+   */
+  column_pick(table: string, name: string): Promise<T_column>
+
+  /**
+   * Create a new column
+   */
+  column_create(table: string, structure: T_column): Promise<void>
+
+  /**
+   * Rename a column
+   */
+  column_rename(table: string, from: string, to: string): Promise<void>
+
+  /**
+   * Rename a column
+   */
+  column_update_type(table: string, name: string, type: T_column_type, type_params?: any): Promise<void>
+
+  /**
+   * Update not null constraint
+   */
+  column_update_nullable(table: string, name: string, nullable: boolean): Promise<void>
+
+  /**
+   * Update unique constraint
+   */
+  column_update_unique(table: string, name: string, unique: boolean): Promise<void>
+
+  /**
+   * Update default value
+   */
+  column_update_default(table: string, name: string, def: any): Promise<void>
+
+  /**
    * Creating necessary tables and datum for migration.
    * --> 2
    */

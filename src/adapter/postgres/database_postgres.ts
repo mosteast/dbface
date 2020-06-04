@@ -9,6 +9,7 @@ import { database_validate_config } from '../../rds/utility/config';
 import { IN_migration_run, migration_log_, N_dialect, T_column, T_config_database, T_database, T_database_meta, T_migration_module, T_table } from '../../type';
 import { key_replace } from '../../util/obj';
 import { Connection_postgres } from './connection_postgres';
+import { Postgres } from './postgres';
 
 const e = require('pg-escape');
 
@@ -20,6 +21,7 @@ export interface T_config_database_postgres extends T_config_database {
  * Connection with selected database
  */
 export class Database_postgres extends Connection_postgres implements T_database {
+
   meta!: T_database_meta;
 
   /**
@@ -28,12 +30,6 @@ export class Database_postgres extends Connection_postgres implements T_database
   static def: T_config_database_postgres = def_database_postgres;
 
   config!: T_config_database_postgres;
-
-  static adapt_column(column_like: T_column | any): T_column {
-    const f: T_column | any = key_replace(column_like, { column: 'name', null: 'nullable' });
-    f.nullable = f.nullable === 'yes' ? true : false;
-    return f;
-  }
 
   async refresh_meta(): Promise<T_database_meta> {
     return this.meta = await this.inspect();
@@ -167,28 +163,9 @@ export class Database_postgres extends Connection_postgres implements T_database
       return null;
     }
 
-    const q_columns = await this.query<T_column[]>(`
-      select a.attname                                             as column,
-             t.typname || '(' || a.atttypmod || ')'                as type,
-             case when a.attnotnull = 't' then 'yes' else 'no' end as null,
-             case when r.contype = 'p' then 'pri' else '' end      as key,
-             (select substring(pg_catalog.pg_get_expr(d.adbin, d.adrelid), '(.*)')
-                from pg_catalog.pg_attrdef d
-                where d.adrelid = a.attrelid
-                  and d.adnum = a.attnum
-                  and a.atthasdef)                                 as default,
-             ''                                                    as extras
-        from pg_class c
-               join pg_attribute a on a.attrelid = c.oid
-               join pg_type t on a.atttypid = t.oid
-               left join pg_catalog.pg_constraint r on c.oid = r.conrelid
-          and r.conname = a.attname
-        where c.relname = $1
-          and a.attnum > 0
-      
-        order by a.attnum`, [ name ]);
-
-    row.columns = keyBy(q_columns.rows.map(Database_postgres.adapt_column), 'name');
+    const q = Postgres.sql_describe_columns({ table: name });
+    const r = await this.query<T_column[]>(q);
+    row.columns = keyBy(r.rows.map(Postgres.adapt_column), 'name');
     return row;
   }
 
@@ -248,6 +225,37 @@ export class Database_postgres extends Connection_postgres implements T_database
     for (const it of r) {
       await this.table_drop(it.name);
     }
+  }
+
+  async column_pick(table: string, name: string): Promise<T_column> {
+    const q = Postgres.sql_describe_columns({ table, column: name });
+    const r = await this.query(q);
+    const it = r.rows[0];
+    return Postgres.adapt_column(it);
+  }
+
+  column_create(table: string, structure: T_column): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+
+  column_rename(table: string, from: string, to: string): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+
+  column_update_type(table: string, name: string, type: import('../../type').T_column_type, type_params?: any): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+
+  column_update_nullable(table: string, name: string, nullable: boolean): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+
+  column_update_unique(table: string, name: string, unique: boolean): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
+
+  column_update_default(table: string, name: string, def: any): Promise<void> {
+    throw new Error('Method not implemented.');
   }
 
   async migration_list_all(): Promise<string[]> {
