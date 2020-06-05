@@ -1,7 +1,7 @@
 import { set } from 'lodash';
-import { columns } from '../../../build/src/adapter/postgres/sql/common';
 import { T_column, T_column_type, T_opt_query } from '../../type';
 import { key_replace } from '../../util/obj';
+import { columns } from './sql/common';
 
 export class Postgres {
   static sql_describe_columns(o: { table: string, select?: string[], column?: string }): T_opt_query {

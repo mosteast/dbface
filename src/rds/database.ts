@@ -1,6 +1,6 @@
 import { merge } from 'lodash';
 import { Invalid_connection_config } from '../error/invalid_connection_config';
-import { N_dialect, T_config_connection, T_config_database, T_database, T_database_meta, T_table } from '../type';
+import { N_dialect, T_column, T_column_type, T_config_connection, T_config_database, T_database, T_database_meta, T_table } from '../type';
 import { Connection } from './connection';
 import { def_database } from './constant/defaults';
 
@@ -159,5 +159,32 @@ export class Database extends Connection implements T_database {
     return this.adapter.table_list_names();
   }
 
+  column_create(table: string, structure: T_column): Promise<void> {
+    return this.adapter.column_create(table, structure);
+  }
+
+  column_pick(table: string, name: string): Promise<T_column> {
+    return this.adapter.column_pick(table, name);
+  }
+
+  column_rename(table: string, from: string, to: string): Promise<void> {
+    return this.adapter.column_rename(table, from, to);
+  }
+
+  column_update_default(table: string, name: string, def: any): Promise<void> {
+    return this.adapter.column_update_default(table, name, def);
+  }
+
+  column_update_nullable(table: string, name: string, nullable: boolean): Promise<void> {
+    return this.adapter.column_update_default(table, name, nullable);
+  }
+
+  column_update_type(table: string, name: string, type: T_column_type, type_args?: any): Promise<void> {
+    return this.adapter.column_update_type(table, name, type, type_args);
+  }
+
+  column_update_unique(table: string, name: string, unique: boolean): Promise<void> {
+    return this.adapter.column_update_unique(table, name, unique);
+  }
 }
 
