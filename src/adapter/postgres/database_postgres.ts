@@ -165,6 +165,11 @@ export class Database_postgres extends Connection_postgres implements T_database
 
     const q = Postgres.sql_describe_columns({ table: name });
     const r = await this.query<T_column[]>(q);
+
+    if ( ! r.count) {
+      return null;
+    }
+
     row.columns = keyBy(r.rows.map(Postgres.adapt_column), 'name');
     return row;
   }
@@ -227,19 +232,19 @@ export class Database_postgres extends Connection_postgres implements T_database
     }
   }
 
-  async column_pick(table: string, name: string): Promise<T_column> {
-    const q = Postgres.sql_describe_columns({ table, column: name });
-    const r = await this.query(q);
+  async column_pick(table: string, name: string): Promise<T_column | null> {
+    const r = await this.query(Postgres.sql_describe_columns({ table, column: name }));
+    if ( ! r.count) { return null; }
     const it = r.rows[0];
     return Postgres.adapt_column(it);
   }
 
-  async column_create(table: string, structure: T_column): Promise<void> {
-    await this.query(``);
+  async column_create(table: string, column: T_column): Promise<void> {
+    await this.query(Postgres.sql_column_create({ table, column }));
   }
 
-  column_rename(table: string, from: string, to: string): Promise<void> {
-    throw new Error('Method not implemented.');
+  async column_rename(table: string, from: string, to: string): Promise<void> {
+    await this.query(`alter table "${table}" rename "${from}" to "${to}"`);
   }
 
   column_update_type(table: string, name: string, type: import('../../type').T_column_type, type_args?: any): Promise<void> {

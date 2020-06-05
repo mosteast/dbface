@@ -1,5 +1,5 @@
 import { set } from 'lodash';
-import { T_column, T_column_type, T_opt_query } from '../../type';
+import { T_column, T_column_type, T_column_type_args, T_opt_query } from '../../type';
 import { key_replace } from '../../util/obj';
 import { columns } from './sql/common';
 
@@ -15,6 +15,27 @@ export class Postgres {
             ${o.column ? `and column_name = $2` : ''}
             and table_schema not in ('pg_catalog', 'information_schema');`,
     };
+  }
+
+  static sql_column_create(o: { table: string, column: T_column }): T_opt_query {
+    const { table, column: { name, type, default_value, type_args, nullable, unique } } = o;
+    return {
+      sql: `alter table "${table}" add "${name}" ${this.sql_part_column_type(type!, type_args)}${nullable ? ' null' : ' not null'}${default_value ? ` default '${default_value}'` : ''}${unique ? ' unique' : ''}`,
+    };
+  }
+
+  static sql_part_column_type(type: T_column_type, args?: T_column_type_args): string {
+    let sql: string = type.toString();
+
+    if (args) {
+      if (args.precision || args.scale) {
+        sql += `(${args.precision}${args.scale ? `,${args.scale}` : ''})`;
+      } else if (args.length) {
+        sql += `(${args.length})`;
+      }
+    }
+
+    return sql;
   }
 
   static sql_column_definition(o: T_column): T_opt_query {

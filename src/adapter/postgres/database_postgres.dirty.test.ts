@@ -172,13 +172,31 @@ it('column_pick', async () => {
   const t = 'b';
   await db.table_create_test(t);
   const r = await db.column_pick(t, 'id');
-  expect(r.name).toBe('id');
-  expect(r.type).toBe('integer');
-  expect(r.nullable).toBe(false);
+  expect(r?.name).toBe('id');
+  expect(r?.type).toBe('integer');
+  expect(r?.nullable).toBe(false);
   const r2 = await db.column_pick(t, 'int2_');
-  expect(r2.type).toBe('smallint');
+  expect(r2?.type).toBe('smallint');
   const r3 = await db.column_pick(t, 'decimal_');
-  expect(r3.type).toBe('numeric');
-  expect(r3.type_args?.precision).toBe(10);
-  expect(r3.type_args?.scale).toBe(2);
+  expect(r3?.type).toBe('numeric');
+  expect(r3?.type_args?.precision).toBe(10);
+  expect(r3?.type_args?.scale).toBe(2);
+});
+
+it('column_rename', async () => {
+  const t = 'a';
+  await db.table_create_test(t);
+  expect(await db.column_pick(t, 'id')).toBeTruthy();
+  await db.column_rename(t, 'id', 'id2');
+  expect(await db.column_pick(t, 'id')).toBeFalsy();
+  expect(await db.column_pick(t, 'id2')).toBeTruthy();
+});
+
+it('column_create', async () => {
+  const t = 'a';
+  const c1 = 'c1';
+  await db.table_create_test(t);
+  expect(await db.column_pick(t, c1)).toBeFalsy();
+  await db.column_create(t, { name: c1, type: 'decimal', type_args: { precision: 10, scale: 2 }, unique: true, nullable: false, default_value: 1 });
+  expect(await db.column_pick(t, c1)).toBeTruthy();
 });

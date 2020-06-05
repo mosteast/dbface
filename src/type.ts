@@ -266,7 +266,7 @@ export interface T_database extends T_connection {
   /**
    * Get one column info
    */
-  column_pick(table: string, name: string): Promise<T_column>
+  column_pick(table: string, name: string): Promise<T_column | null>
 
   /**
    * Create a new column
@@ -419,7 +419,7 @@ export interface T_column_common {
    * Default database value.
    * Note that default value is not supported when column type is 'json' of mysql.
    */
-  default?: any;
+  default_value?: any;
   /**
    * Column comment. Not supported by all database types.
    */
@@ -444,9 +444,11 @@ export interface T_type_args_numeric {
 }
 
 export interface T_type_args_string {
-  length: number,
+  length?: number,
   width?: number;
 }
+
+export type T_column_type_args = T_type_args_string & T_type_args_numeric
 
 export interface T_column extends T_column_common {
   /**
@@ -457,7 +459,7 @@ export interface T_column extends T_column_common {
    * Column type arguments
    * e.g.: in "decimal(10, 2)" "10" and "2" are arguments
    */
-  type_args?: T_type_args_string & T_type_args_numeric
+  type_args?: T_column_type_args
   /**
    * Column name in the database.
    */
@@ -469,7 +471,7 @@ export interface T_column extends T_column_common {
   /**
    * Default database value.
    */
-  default?: any;
+  default_value?: any;
   /**
    * Indicates if this column is a primary key.
    * Same can be achieved when @PrimaryColumn decorator is used.
