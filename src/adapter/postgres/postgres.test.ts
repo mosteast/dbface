@@ -33,3 +33,10 @@ it('sql_column_create', async () => {
   const c = Postgres.sql_column_create({ table: 'a', column: { name: 'a1', type: 'decimal', type_args: { precision: 10 }, nullable: false, unique: true } });
   expect(c.sql).toBe('alter table "a" add "a1" decimal(10) not null unique');
 });
+
+it('adapt_constraint_name', async () => {
+  expect(Postgres.adapt_constraint_name('FOREIGN KEY')).toBe('foreign');
+  expect(Postgres.adapt_constraint_name('PRIMARY KEY')).toBe('primary');
+  expect(Postgres.adapt_constraint_name('UNIQUE')).toBe('unique');
+  expect(Postgres.adapt_constraint_name('CHECK')).toBe('check');
+});

@@ -6,7 +6,7 @@ import { Invalid_argument } from '../../error/invalid_argument';
 import { Invalid_state } from '../../error/invalid_state';
 import { def_database_postgres } from '../../rds/constant/defaults';
 import { database_validate_config } from '../../rds/utility/config';
-import { IN_migration_run, migration_log_, N_dialect, T_column, T_config_database, T_database, T_database_meta, T_migration_module, T_table } from '../../type';
+import { IN_migration_run, migration_log_, N_dialect, T_column, T_column_type, T_config_database, T_constraint_type, T_constraints, T_database, T_database_meta, T_migration_module, T_table } from '../../type';
 import { key_replace } from '../../util/obj';
 import { Connection_postgres } from './connection_postgres';
 import { Postgres } from './postgres';
@@ -120,7 +120,7 @@ export class Database_postgres extends Connection_postgres implements T_database
 
     await this.query(e(`
       create table if not exists "%I" (
-        id serial primary key, 
+        id serial, 
         smallint_ smallint,
         int_ int,
         bigint_ bigint,
@@ -134,7 +134,9 @@ export class Database_postgres extends Connection_postgres implements T_database
         varchar_ varchar, 
         timestamp_ timestamp, 
         interval_ interval, 
-        not_null_ int not null)`, [ name ]));
+        not_null_ int not null,
+        constraint pk_id primary key (id)
+        )`, [ name ]));
   }
 
   /**
@@ -232,6 +234,35 @@ export class Database_postgres extends Connection_postgres implements T_database
     }
   }
 
+  async table_constraint_list(table: string): Promise<T_constraints> {
+    const r = await this.query(`
+      select a.table_name      as table,
+           a.table_schema    as schema,
+           a.table_catalog   as catalog,
+           a.constraint_name as name,
+           a.constraint_type as type,
+           b.column_name     as column
+      from information_schema.table_constraints a
+             left join information_schema.constraint_column_usage b
+                        on a.table_name = b.table_name and
+                           a.table_schema = b.table_schema and
+                           a.constraint_name = b.constraint_name
+      where a.table_name = $1
+      and b.column_name is not null;`, [ table ]);
+
+    const rows = r.rows;
+    const map: T_constraints = {};
+
+    for (const it of rows) {
+      const con = map[it.name] = map[it.name] || it;
+      con.type = Postgres.adapt_constraint_name(con.type as T_constraint_type);
+      con.columns = con.columns || [];
+      con.columns!.push(it.column);
+    }
+
+    return map;
+  }
+
   async column_pick(table: string, name: string): Promise<T_column | null> {
     const r = await this.query(Postgres.sql_describe_columns({ table, column: name }));
     if ( ! r.count) { return null; }
@@ -247,16 +278,21 @@ export class Database_postgres extends Connection_postgres implements T_database
     await this.query(`alter table "${table}" rename "${from}" to "${to}"`);
   }
 
-  column_update_type(table: string, name: string, type: import('../../type').T_column_type, type_args?: any): Promise<void> {
-    throw new Error('Method not implemented.');
+  async column_update_type(table: string, name: string, type: T_column_type, type_args?: any): Promise<void> {
+    await this.query(`alter table "${table}" alter "${name}" type ${type}`);
   }
 
-  column_update_nullable(table: string, name: string, nullable: boolean): Promise<void> {
-    throw new Error('Method not implemented.');
+  async column_update_nullable(table: string, name: string, nullable: boolean): Promise<void> {
+    await this.query(`alter table "${table}" alter "${name}" ${nullable ? 'drop not null' : 'set not null'}`);
   }
 
-  column_update_unique(table: string, name: string, unique: boolean): Promise<void> {
-    throw new Error('Method not implemented.');
+  async column_update_unique(table: string, name: string, unique: boolean, key_name?: string): Promise<void> {
+    key_name = key_name || `uk_${table}_${name}`;
+    let sql = `alter table "${table}"` +
+      (unique ?
+        ` add constraint "${key_name}" unique("${name}")` :
+        ` drop constraint "${key_name}"`);
+    await this.query(sql);
   }
 
   column_update_default(table: string, name: string, def: any): Promise<void> {
@@ -367,5 +403,4 @@ export class Database_postgres extends Connection_postgres implements T_database
 
     return r;
   }
-
 }

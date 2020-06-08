@@ -1,19 +1,31 @@
 import { set } from 'lodash';
-import { T_column, T_column_type, T_column_type_args, T_opt_query } from '../../type';
+import { T_column, T_column_type, T_column_type_args, T_constraint_type, T_opt_query } from '../../type';
 import { key_replace } from '../../util/obj';
-import { columns } from './sql/common';
 
 export class Postgres {
-  static sql_describe_columns(o: { table: string, select?: string[], column?: string }): T_opt_query {
+  static sql_describe_columns(o: { table: string, column?: string, has_constraint?: boolean }): T_opt_query {
     return {
       args: [ o.table, o.column ].filter(it => it),
+      // ${o.with_constraint ? `inner join`}
       sql: `
-        select ${o.select ? columns(o.select) : '*'}
-          from information_schema.columns
-          where 
-            table_name = $1
-            ${o.column ? `and column_name = $2` : ''}
-            and table_schema not in ('pg_catalog', 'information_schema');`,
+select cons.table_schema as schema,
+       cons.constraint_name,
+       cons.constraint_type,
+       cols.*
+from information_schema.columns cols
+       left join information_schema.constraint_column_usage uses
+                 on cols.table_name = uses.table_name and
+                    cols.column_name = uses.column_name
+       left join information_schema.table_constraints cons
+                  on uses.table_name = cons.table_name and
+                     uses.table_schema = cons.table_schema and
+                     uses.constraint_name = cons.constraint_name
+where cols.table_name = $1
+    and cols.table_schema not in ('pg_catalog', 'information_schema')
+    ${o.column ? `and cols.column_name = $2` : ''}
+    ${o.has_constraint ? `and cons.constraint_name is not null` : ''}
+;`,
+
     };
   }
 
@@ -36,6 +48,23 @@ export class Postgres {
     }
 
     return sql;
+  }
+
+  /**
+   * PRIMARY KEY --> primary
+   * FOREIGN KEY --> foreign
+   * UNIQUE --> unique
+   * CHECK --> check
+   */
+  static adapt_constraint_name(name: string): T_constraint_type {
+    const map: { [key: string]: T_constraint_type } = {
+      'PRIMARY KEY': 'primary',
+      'UNIQUE': 'unique',
+      'FOREIGN KEY': 'foreign',
+      'CHECK': 'check',
+    };
+
+    return map[name.toUpperCase()] ?? name;
   }
 
   static sql_column_definition(o: T_column): T_opt_query {

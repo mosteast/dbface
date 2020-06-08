@@ -253,9 +253,20 @@ export interface T_database extends T_connection {
   table_list(): Promise<T_table[]>
 
   /**
+   * Get all columns that has at least one constraint
+   */
+
+  // column_list_with_constraints(table: string, type?: T_constraint_type): Promise<T_constraint[]>
+
+  /**
    * Get all table names
    */
   table_list_names(): Promise<string[]>
+
+  /**
+   * List primary key, foreign key, unique key
+   */
+  table_constraint_list(table: string): Promise<T_constraints>
 
   /**
    * Get one table info
@@ -291,7 +302,7 @@ export interface T_database extends T_connection {
   /**
    * Update unique constraint
    */
-  column_update_unique(table: string, name: string, unique: boolean): Promise<void>
+  column_update_unique(table: string, name: string, unique: boolean, key_name?: string): Promise<void>
 
   /**
    * Update default value
@@ -378,6 +389,34 @@ export interface T_key_foreign<Source = any, Target = any> {
    * Foreign target (e.g. user.id)
    */
   target: { table: string, column: keyof Target },
+}
+
+export interface T_constraints {
+  [key: string]: T_constraint
+}
+
+export type T_constraint_type = 'unique' | 'primary' | 'foreign' | 'check'
+
+export interface T_constraint {
+  /**
+   * Key name of a constraint
+   */
+  key?: string
+
+  /**
+   * Table name
+   */
+  table?: string
+
+  /**
+   * Constraint type
+   */
+  type?: T_constraint_type
+
+  /**
+   * Columns that apply this constraint
+   */
+  columns?: string[]
 }
 
 export interface T_key_unique {
