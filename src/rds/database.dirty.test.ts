@@ -85,7 +85,6 @@ it('table_list/table_count', async () => {
 it('table_pick', async () => {
   await db.table_create_test(name);
   const row = await db.table_pick(name);
-  console.log(row);
   expect(keys(row?.columns)).toBeTruthy();
   await db.table_drop(name);
 });
