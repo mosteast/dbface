@@ -10,7 +10,7 @@ it('sql_describe_columns', async () => {
   const r2 = Postgres.sql_describe_columns({ table, column });
   expect(r2.args[0]).toBe(table);
   expect(r2.args[1]).toBe(column);
-  const r3 = Postgres.sql_describe_columns({ table, column, select: [ 'a', 'b', 'c' ] });
+  const r3 = Postgres.sql_describe_columns({ table, column });
   expect(r3.sql).not.toContain('select *');
 });
 
@@ -26,7 +26,7 @@ it('sql_column_create', async () => {
   const a = Postgres.sql_column_create({ table: 'a', column: { name: 'a1', type: 'decimal', type_args: { precision: 10 }, nullable: true } });
   expect(a.sql).toBe('alter table "a" add "a1" decimal(10) null');
 
-  const b = Postgres.sql_column_create({ table: 'a', column: { name: 'a1', type: 'decimal', type_args: { precision: 10 }, nullable: true, default_value: 1 } });
+  const b = Postgres.sql_column_create({ table: 'a', column: { name: 'a1', type: 'decimal', type_args: { precision: 10 }, nullable: true, def: 1 } });
   expect(b.sql).toBe('alter table "a" add "a1" decimal(10) null default $1');
   expect(b.args[0]).toBe(1);
 

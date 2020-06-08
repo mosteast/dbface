@@ -458,7 +458,7 @@ export interface T_column_common {
    * Default database value.
    * Note that default value is not supported when column type is 'json' of mysql.
    */
-  default_value?: any;
+  def?: any;
   /**
    * Column comment. Not supported by all database types.
    */
@@ -508,9 +508,9 @@ export interface T_column extends T_column_common {
    */
   nullable?: boolean;
   /**
-   * Default database value.
+   * Default value.
    */
-  default_value?: any;
+  def?: any;
   /**
    * Indicates if this column is a primary key.
    * Same can be achieved when @PrimaryColumn decorator is used.

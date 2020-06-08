@@ -94,9 +94,9 @@ it('table_constraint_list', async () => {
   await db.table_create_test(t);
   const r = await db.table_constraint_list(t);
   expect(keys(r).length).toBeTruthy();
-  expect(r.pk_id).toBeTruthy();
-  expect(r.pk_id.columns).toContain('id');
-  expect(r.pk_id.type).toBe('primary');
+  expect(r.pk_a).toBeTruthy();
+  expect(r.pk_a.columns).toContain('id');
+  expect(r.pk_a.type).toBe('primary');
 });
 
 it('migration_list_all/migration_list_all_ids', async () => {
@@ -207,7 +207,7 @@ it('column_create', async () => {
   const c1 = 'c1';
   await db.table_create_test(t);
   expect(await db.column_pick(t, c1)).toBeFalsy();
-  await db.column_create(t, { name: c1, type: 'decimal', type_args: { precision: 10, scale: 2 }, unique: true, nullable: false, default_value: 1 });
+  await db.column_create(t, { name: c1, type: 'decimal', type_args: { precision: 10, scale: 2 }, unique: true, nullable: false, def: 1 });
   expect(await db.column_pick(t, c1)).toBeTruthy();
 });
 
@@ -228,4 +228,15 @@ it('column_update_unique', async () => {
   await db.column_update_unique(t, c1, true);
   const cons = await db.table_constraint_list(t);
   expect(cons.uk_a_int_.columns?.includes('int_')).toBeTruthy();
+});
+
+it('column_update_default', async () => {
+  const t = 'a';
+  const c1 = 'int_';
+  await db.table_create_test(t);
+  const r = await db.column_pick(t, c1);
+  const old = r?.def;
+  await db.column_update_default(t, c1, 1);
+  const r2 = await db.column_pick(t, c1);
+  expect(old).not.toBe(r2?.def);
 });

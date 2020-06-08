@@ -20,7 +20,7 @@ export class Connection extends events.EventEmitter implements T_connection {
           log = { logger: log };
           break;
         case 'boolean':
-          log = {};
+          log = { log_args: true };
           break;
       }
 
@@ -30,7 +30,7 @@ export class Connection extends events.EventEmitter implements T_connection {
 
       let param_part = '';
       if (log.log_args) {
-        param_part = '\n-- ' + JSON.stringify(args || []);
+        param_part = '\n  -- ' + JSON.stringify(args || []);
       }
 
       log.logger(sql?.trim(), param_part);

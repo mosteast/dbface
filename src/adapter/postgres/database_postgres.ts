@@ -135,7 +135,7 @@ export class Database_postgres extends Connection_postgres implements T_database
         timestamp_ timestamp, 
         interval_ interval, 
         not_null_ int not null,
-        constraint pk_id primary key (id)
+        constraint pk_${name} primary key (id)
         )`, [ name ]));
   }
 
@@ -295,8 +295,8 @@ export class Database_postgres extends Connection_postgres implements T_database
     await this.query(sql);
   }
 
-  column_update_default(table: string, name: string, def: any): Promise<void> {
-    throw new Error('Method not implemented.');
+  async column_update_default(table: string, name: string, def: any): Promise<void> {
+    await this.query(`alter table "${table}" alter "${name}" set default '${def}'`);
   }
 
   async migration_list_all(): Promise<string[]> {

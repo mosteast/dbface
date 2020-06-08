@@ -134,7 +134,12 @@ limit 1`, [ name ]);
     }
 
     Connection.log(this, opt);
-    const r = await this.client.query({ text: opt.sql, values: opt.args } as QueryConfig);
+    const r = await this.client.query({ text: opt.sql, values: opt.args } as QueryConfig).catch(e => {
+      opt.log = true;
+      Connection.log(this, opt);
+      throw e;
+    });
+
     return key_replace<T_result<T>>(r, { rowCount: 'count' });
   }
 }

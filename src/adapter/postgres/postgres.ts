@@ -30,9 +30,9 @@ where cols.table_name = $1
   }
 
   static sql_column_create(o: { table: string, column: T_column }): T_opt_query {
-    const { table, column: { name, type, default_value, type_args, nullable, unique } } = o;
+    const { table, column: { name, type, def, type_args, nullable, unique } } = o;
     return {
-      sql: `alter table "${table}" add "${name}" ${this.sql_part_column_type(type!, type_args)}${nullable ? ' null' : ' not null'}${default_value ? ` default '${default_value}'` : ''}${unique ? ' unique' : ''}`,
+      sql: `alter table "${table}" add "${name}" ${this.sql_part_column_type(type!, type_args)}${nullable ? ' null' : ' not null'}${def ? ` default '${def}'` : ''}${unique ? ' unique' : ''}`,
     };
   }
 
@@ -82,10 +82,10 @@ where cols.table_name = $1
   }
 
   static adapt_column(column_like: T_column | any): T_column {
-    const row = key_replace<any>(column_like, {
+    const row: any = key_replace<T_column>(column_like, {
       column_name: 'name', data_type: 'type', is_nullable: 'nullable',
       character_set_name: 'charset', collation_name: 'collation',
-      column_default: 'default',
+      column_default: 'def',
     });
 
     row.nullable = row.nullable?.toLowerCase() === 'yes' ? true : false;
