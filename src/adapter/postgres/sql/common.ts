@@ -3,9 +3,9 @@
  * 'a' --> '`a`'
  * ['a', 'aa'] --> '`a` as `aa`'
  */
-import { identifier_builder, T_identifier } from '../../../rds/sql/common';
+import { fn_builder_identifier, T_identifier } from '../../../rds/sql/common';
 
-export const identifier = identifier_builder({ quote: '"' });
+export const identifier = fn_builder_identifier({ quote: '"' });
 
 export function identifiers(v: T_identifier[]) {
   return v.map(identifier).join(', ');

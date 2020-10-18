@@ -5,7 +5,7 @@ import { Connection } from '../../rds/connection';
 import { def_connection_postgres } from '../../rds/constant/defaults';
 import { connection_validate_config } from '../../rds/utility/config';
 import { N_dialect, T_config_connection, T_connection, T_opt_query, T_result, T_row_database } from '../../type';
-import { key_replace } from '../../util/obj';
+import { key_replace } from '../../util/object';
 
 const e = require('pg-escape');
 

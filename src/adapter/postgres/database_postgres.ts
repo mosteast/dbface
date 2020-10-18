@@ -7,7 +7,7 @@ import { Invalid_state } from '../../error/invalid_state';
 import { def_database_postgres } from '../../rds/constant/defaults';
 import { database_validate_config } from '../../rds/utility/config';
 import { IN_migration_run, migration_log_, N_dialect, T_column, T_column_type, T_config_database, T_constraint_type, T_constraints, T_database, T_database_meta, T_migration_module, T_table } from '../../type';
-import { key_replace } from '../../util/obj';
+import { key_replace } from '../../util/object';
 import { Connection_postgres } from './connection_postgres';
 import { Postgres } from './postgres';
 

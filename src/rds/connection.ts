@@ -1,7 +1,9 @@
 import * as events from 'events';
 import { cloneDeep, merge } from 'lodash';
 import { Invalid_connection_config } from '../error/invalid_connection_config';
-import { N_dialect, T_config_connection, T_connection, T_opt_log, T_opt_query, T_raw_config, T_result, T_row_database } from '../type';
+import {
+  N_dialect, T_config_connection, T_connection, T_opt_log, T_opt_query, T_raw_config, T_result, T_row_database,
+} from '../type';
 import { def_connection } from './constant/defaults';
 
 /**

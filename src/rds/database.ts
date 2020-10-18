@@ -1,6 +1,9 @@
 import { merge } from 'lodash';
 import { Invalid_connection_config } from '../error/invalid_connection_config';
-import { N_dialect, T_column, T_column_type, T_config_connection, T_config_database, T_constraints, T_database, T_database_meta, T_table } from '../type';
+import {
+  N_dialect, T_column, T_column_type, T_config_connection, T_config_database, T_constraints, T_database,
+  T_database_meta, T_table,
+} from '../type';
 import { Connection } from './connection';
 import { def_database } from './constant/defaults';
 

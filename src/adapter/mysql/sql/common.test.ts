@@ -1,9 +1,9 @@
-import { column, columns, identifier, identifiers, table } from './common';
+import { column, columns, trans_identifier, trans_identifiers, table } from './common';
 
 it('identifier', async () => {
-  expect(identifier('a')).toBe('`a`');
-  expect(identifier([ 'a', 'aa' ])).toBe('`a` as `aa`');
-  
+  expect(trans_identifier('a')).toBe('`a`');
+  expect(trans_identifier([ 'a', 'aa' ])).toBe('`a` as `aa`');
+
   expect(column('a')).toBe('`a`');
   expect(column([ 'a', 'aa' ])).toBe('`a` as `aa`');
   expect(table('a')).toBe('`a`');
@@ -11,11 +11,11 @@ it('identifier', async () => {
 });
 
 it('identifiers', async () => {
-  expect(identifiers([ 'a' ])).toBe('`a`');
-  expect(identifiers([ [ 'a', 'aa' ] ])).toBe('`a` as `aa`');
-  expect(identifiers([ 'a', 'aa' ])).toBe('`a`, `aa`');
-  expect(identifiers([ [ 'a', 'aa' ], [ 'b', 'bb' ] ])).toBe('`a` as `aa`, `b` as `bb`');
-  expect(identifiers([ [ 'a', 'aa' ], 'b' ])).toBe('`a` as `aa`, `b`');
+  expect(trans_identifiers([ 'a' ])).toBe('`a`');
+  expect(trans_identifiers([ [ 'a', 'aa' ] ])).toBe('`a` as `aa`');
+  expect(trans_identifiers([ 'a', 'aa' ])).toBe('`a`, `aa`');
+  expect(trans_identifiers([ [ 'a', 'aa' ], [ 'b', 'bb' ] ])).toBe('`a` as `aa`, `b` as `bb`');
+  expect(trans_identifiers([ [ 'a', 'aa' ], 'b' ])).toBe('`a` as `aa`, `b`');
 
   expect(columns([ 'a' ])).toBe('`a`');
   expect(columns([ [ 'a', 'aa' ] ])).toBe('`a` as `aa`');

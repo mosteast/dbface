@@ -1,6 +1,6 @@
 import { set } from 'lodash';
 import { T_column, T_column_type, T_column_type_args, T_constraint_type, T_opt_query } from '../../type';
-import { key_replace } from '../../util/obj';
+import { key_replace } from '../../util/object';
 
 export class Postgres {
   static sql_describe_columns(o: { table: string, column?: string, has_constraint?: boolean }): T_opt_query {
